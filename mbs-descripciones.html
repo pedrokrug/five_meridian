@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MBS Descripciones — 5·MERIDIAN</title>
+<meta name="description" content="MBS Descripciones — Generador ICNEA de descripciones multilingües para propiedades de alquiler vacacional. Por 5·Meridian.">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  :root{--dk:#0d4556;--ac:#80cbca;--lt:#f0fafa;--lt2:#e8f6f6;--bg:#f7fafa;--w:#fff;--err:#e74c3c}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#333}
+  .hdr{background:var(--dk);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .hdr h1{color:var(--w);font-size:17px;font-weight:700;letter-spacing:1px}
+  .hdr span.subtitle{color:var(--ac);font-size:13px}
+  .hdr-cfg{display:flex;align-items:center;gap:8px}
+  .hdr-cfg label{color:var(--ac);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  .hdr-cfg input{background:rgba(255,255,255,.12);border:1px solid rgba(128,203,202,.3);color:var(--w);padding:5px 10px;border-radius:6px;font-size:12px;width:360px;font-family:monospace}
+  .hdr-cfg input:focus{outline:none;border-color:var(--ac)}
+  .container{max-width:1440px;margin:0 auto;padding:20px}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:20px;min-height:calc(100vh - 140px)}
+  @media(max-width:960px){.split{grid-template-columns:1fr}}
+  .panel{background:var(--w);border-radius:10px;border:1px solid #dde;overflow:hidden;display:flex;flex-direction:column}
+  .panel-head{background:var(--lt);padding:12px 18px;border-bottom:1px solid #d0e4e4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .panel-head h2{font-size:13px;font-weight:700;color:var(--dk);text-transform:uppercase;letter-spacing:1px}
+  .panel-body{flex:1;overflow:auto;display:flex;flex-direction:column}
+  .tab-bar{display:flex;border-bottom:1px solid #e8e8e8}
+  .tab-btn{background:none;border:none;padding:9px 18px;font-size:12px;font-weight:600;color:#999;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+  .tab-btn:hover{color:var(--dk)}
+  .tab-btn.active{color:var(--dk);border-bottom-color:var(--ac)}
+  .tab-pane{display:none;flex:1}
+  .tab-pane.active{display:flex;flex-direction:column}
+  textarea{width:100%;flex:1;min-height:500px;border:none;padding:18px;font-family:Consolas,Monaco,monospace;font-size:13px;line-height:1.7;color:#333;resize:none;outline:none;background:var(--w)}
+  textarea::placeholder{color:#bbb}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:18px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .2s}
+  .btn-ai{background:linear-gradient(135deg,#0d4556,#1a6a80);color:var(--w);padding:10px 24px;font-size:13px}
+  .btn-ai:hover{background:linear-gradient(135deg,#1a6a80,#0d4556)}
+  .btn-ai:disabled{opacity:.5;cursor:wait}
+  .btn-copy{background:var(--dk);color:var(--w)}
+  .btn-copy:hover{background:#1a6a80}
+  .btn-outline{background:none;color:var(--dk);border:1.5px solid #ccc}
+  .btn-outline:hover{border-color:var(--ac)}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .code-view{padding:18px;font-family:Consolas,Monaco,monospace;font-size:11px;line-height:1.6;white-space:pre-wrap;word-break:break-all;color:#444;background:#fafcfc;user-select:all;flex:1;overflow:auto}
+  .preview-frame{border:none;width:100%;flex:1;min-height:500px}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--dk);color:var(--w);padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transform:translateY(8px);transition:all .3s;z-index:999;pointer-events:none}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast.err{background:var(--err)}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:var(--w);border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .status-bar{padding:10px 18px;font-size:12px;color:#888;border-top:1px solid #eee;background:#fafafa}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div><h1>MARBELLA BANUS SUITES</h1><span class="subtitle">Generador de Descripcion ICNEA v2</span></div>
+  <div class="hdr-cfg">
+    <label>Webhook:</label>
+    <input type="text" id="webhookUrl" value="https://krug.app.n8n.cloud/webhook/ada036f1-25ee-4976-9c30-08adf083c083" placeholder="https://tu-n8n.com/webhook/...">
+  </div>
+</div>
+<div class="container">
+  <div class="split">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Pegar texto</h2>
+        <div class="btns">
+          <button class="btn btn-outline" onclick="loadExample()">Ejemplo</button>
+          <button class="btn btn-ai" id="btnGo" onclick="doGenerate()"><span id="btnGoText">Generar HTML &rarr;</span></button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <textarea id="rawInput" placeholder="Pega aqui el texto desde Google Docs...&#10;&#10;Cualquier formato: parrafos sueltos, notas, listados...&#10;La IA lo estructura y genera el HTML automaticamente."></textarea>
+        <div class="status-bar" id="statusBar">Listo</div>
+      </div>
+    </div>
+    <div class="panel" id="rightPanel">
+      <div class="panel-head">
+        <h2>Resultado</h2>
+        <button class="btn btn-copy" onclick="copyHTML()">Copiar HTML</button>
+      </div>
+      <div class="panel-body">
+        <div class="tab-bar" id="rightTabs">
+          <button class="tab-btn active" data-t="preview">Vista previa</button>
+          <button class="tab-btn" data-t="code">Codigo HTML</button>
+        </div>
+        <div id="t-preview" class="tab-pane active"><div id="previewDiv" style="padding:20px;overflow:auto;flex:1;min-height:500px;font-family:Arial,sans-serif;color:#999;display:flex;align-items:center;justify-content:center;text-align:center;">Pega el texto y haz clic en &laquo;Generar HTML&raquo;</div></div>
+        <div id="t-code" class="tab-pane"><div id="codeView" class="code-view" style="color:#999">Genera el HTML para ver el codigo aqui.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+/* ── Tab switching ── */
+document.querySelectorAll('.tab-bar').forEach(function(bar) {
+  bar.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var panel = bar.closest('.panel');
+      var t = btn.dataset.t;
+      bar.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      panel.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.toggle('active', p.id === 't-' + t); });
+    });
+  });
+});
+
+function toast(m, e) {
+  var t = document.getElementById('toast');
+  t.textContent = m;
+  t.className = 'toast show' + (e ? ' err' : '');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+function status(m) { document.getElementById('statusBar').textContent = m; }
+
+function copyHTML() {
+  var c = document.getElementById('codeView').textContent;
+  if (!c || c.indexOf('Genera') === 0) { toast('Genera el HTML primero', true); return; }
+  navigator.clipboard.writeText(c).then(function() { toast('HTML copiado'); });
+}
+
+function loadExample() {
+  document.getElementById('rawInput').value = "Brand New and Exclusive Ban\u00fas Port Seafront Flat\n\nApartamento de 2 dormitorios y 2 ba\u00f1os completamente renovado, con terraza privada y vistas directas al puerto y al Mediterr\u00e1neo. Ubicado en segunda l\u00ednea de la marina de Puerto Ban\u00fas, equipado con climatizaci\u00f3n de \u00faltima generaci\u00f3n y sistema de seguridad moderno. A pocos pasos de las playas y rodeado de la mejor oferta gastron\u00f3mica, comercial y de ocio de la Costa del Sol. Ideal para parejas, familias o grupos peque\u00f1os que quieren vivir Puerto Ban\u00fas desde dentro.\n\nLa marina de Puerto Ban\u00fas a pocos minutos a pie y el Mediterr\u00e1neo despleg\u00e1ndose desde tu terraza. La terraza privada se convierte en el centro de la estancia: desayunos con vistas al puerto, aperitivos al atardecer y cenas en las noches de verano. Boutiques, restaurantes internacionales y El Corte Ingl\u00e9s est\u00e1n a la vuelta de la esquina. Todo gestionado por nuestro equipo local en Puerto Ban\u00fas, con atenci\u00f3n personal antes, durante y despu\u00e9s de tu estancia.\n\nPlayas a 3 minutos andando. Boutiques de Bulgari, Dior y Louis Vuitton en el paseo de la marina. Ocean Club Marbella a 5 min a pie, Muelle de Honor a 3 min, El Corte Ingl\u00e9s a 8 min a pie. Centro de Marbella a pocos minutos en coche.\n\nCapacidad para 4 personas.\nDormitorio 1 con cama de matrimonio, vistas al puerto y al mar, armario empotrado, caja fuerte digital, escritorio integrado y ba\u00f1o en suite decorado con cer\u00e1micos artesanales sevillanos.\nDormitorio 2 con cama de matrimonio, ba\u00f1o en suite y vistas al puerto y al mar a trav\u00e9s del sal\u00f3n y la terraza.\nColchones de m\u00ednimo 26 cm y almohadas de fibras hipoalerg\u00e9nicas.\nSal\u00f3n-comedor integrado con Smart TV y acceso directo a la terraza con vistas al mar.\nCocina totalmente integrada con electrodom\u00e9sticos de primeras marcas.\nTerraza privada con mobiliario de exterior y vistas directas al puerto.\nWiFi de alta velocidad y climatizaci\u00f3n de \u00faltima generaci\u00f3n.\nCerradura electr\u00f3nica, videoportero con c\u00e1mara, recepci\u00f3n en horario laboral, 2 ascensores.\n\nPreguntas frecuentes:\n\u00bfCu\u00e1ntas personas puede alojar? Hasta 4 hu\u00e9spedes en 2 dormitorios con ba\u00f1o en suite.\n\u00bfEn qu\u00e9 zona est\u00e1? Segunda l\u00ednea de la marina de Puerto Ban\u00fas, a 3 minutos a pie de la playa.\n\u00bfEs adecuada para familias con ni\u00f1os? S\u00ed, perfectamente. Nuestro equipo orienta sobre actividades infantiles.\n\u00bfDispone de piscina? No, pero la playa est\u00e1 a 3 minutos a pie.\n\u00bfTiene parking? No incluye parking, hay parkings p\u00fablicos cercanos.\n\u00bfHorarios de check-in y check-out? Check-in desde las 16:00h, check-out antes de las 11:00h.\n\u00bfLimpieza incluida? Limpieza de salida incluida. Adicional disponible bajo consulta.\n\u00bfSe puede reservar directamente? S\u00ed, en marbellabanussuites.com con 0% comisiones, sin dep\u00f3sito y con garant\u00edas I-PRAC.";
+  toast('Ejemplo cargado');
+}
+
+/* ── Strip HTML on paste ── */
+document.getElementById('rawInput').addEventListener('paste', function(e) {
+  e.preventDefault();
+  var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+  document.execCommand('insertText', false, text);
+});
+
+/* ── Single-click: send to backend, get HTML back ── */
+function doGenerate() {
+  var raw = document.getElementById('rawInput').value.trim();
+  if (!raw) { toast('Pega texto primero', true); return; }
+  var url = document.getElementById('webhookUrl').value.trim();
+  if (!url) { toast('Configura la URL del webhook arriba', true); return; }
+
+  var btn = document.getElementById('btnGo');
+  var txt = document.getElementById('btnGoText');
+  btn.disabled = true;
+  txt.innerHTML = '<span class="spinner"></span> Generando...';
+  status('Enviando texto a la IA y generando HTML...');
+
+  var controller = new AbortController();
+  var timeout = setTimeout(function() { controller.abort(); }, 120000);
+
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json, text/plain, */*' },
+    body: JSON.stringify({ text: raw }),
+    signal: controller.signal
+  })
+  .then(function(res) {
+    clearTimeout(timeout);
+    if (!res.ok) {
+      return res.text().then(function(errBody) {
+        console.error('Webhook HTTP error', res.status, errBody);
+        throw new Error('HTTP ' + res.status + (errBody ? ' — ' + errBody.substring(0, 200) : ''));
+      });
+    }
+    return res.text();
+  })
+  .then(function(rawResponse) {
+    console.log('Webhook raw response:', rawResponse);
+    var html = '';
+    try {
+      var data = JSON.parse(rawResponse);
+      if (typeof data === 'string') {
+        html = data;
+      } else if (Array.isArray(data) && data.length > 0) {
+        var first = data[0];
+        html = first.html || first.output || first.text || '';
+        if (!html && first.json) html = first.json.html || first.json.output || first.json.text || '';
+        if (!html && typeof first === 'string') html = first;
+        if (!html) html = JSON.stringify(first);
+      } else if (data && typeof data === 'object') {
+        html = data.html || data.output || data.text || '';
+        if (!html && data.json) html = data.json.html || data.json.output || data.json.text || '';
+      }
+    } catch (e) {
+      if (rawResponse.trim()) html = rawResponse.trim();
+      else throw new Error('Respuesta no valida del servidor');
+    }
+    if (!html) throw new Error('Respuesta vacia del servidor. Raw: ' + rawResponse.substring(0, 300));
+
+    var cv = document.getElementById('codeView');
+    cv.textContent = html;
+    cv.style.color = '#444';
+    var pd = document.getElementById('previewDiv');
+    pd.innerHTML = html;
+    pd.style.display = 'block';
+    pd.style.alignItems = '';
+    pd.style.justifyContent = '';
+    pd.style.textAlign = '';
+    pd.style.color = '';
+    document.querySelector('#rightTabs .tab-btn[data-t="preview"]').click();
+    status('HTML generado. Usa Copiar HTML para pegarlo en ICNEA.');
+    toast('HTML generado');
+  })
+  .catch(function(err) {
+    var msg = err.message;
+    if (err.name === 'AbortError') msg = 'Timeout — el servidor tardo mas de 2 minutos';
+    else if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('network') !== -1)
+      msg = 'Error de red — El workflow de n8n esta ACTIVO? (no en modo test). Verifica tambien la URL del webhook.';
+    console.error('Generate error:', err);
+    toast('Error: ' + msg, true);
+    status('Error: ' + msg);
+  })
+  .finally(function() {
+    btn.disabled = false;
+    txt.textContent = 'Generar HTML \u2192';
+  });
+}
+</script>
+</body>
+</html>

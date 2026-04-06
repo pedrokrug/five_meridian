@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5·MERIDIAN — Transformación Operativa y Digital</title>
+<meta name="description" content="5·Meridian — Consultoría de transformación operativa y digital. Diseñamos sistemas, automatizaciones y experiencias que elevan tu negocio.">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #f5f2ec;
+    --mid: #888;
+    --dim: #bbb;
+    --border: #ccc;
+    --accent: #d4a017;
+    --paper: #f5f2ec;
+    --dark-paper: #0e0e0e;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  
+  body {
+    background: var(--paper);
+    color: var(--black);
+    font-family: var(--mono);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 40px; }
+  .ref-tag { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: var(--mid); }
+  .section-border { border-top: 1px solid var(--border); }
+
+  /* ---- BARCODE ---- */
+  .barcode { display: flex; align-items: flex-end; gap: 0; }
+  .barcode .bar { background: var(--black); flex-shrink: 0; }
+  .barcode.inv .bar { background: var(--white); }
+
+  .nav-logo-link { display: inline-flex; align-items: center; text-decoration: none; color: var(--black); }
+  .nav-logo-svg { height: 32px; width: auto; display: block; }
+
+  /* ---- HEADER ---- */
+  header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: var(--paper); border-bottom: 1px solid var(--border); transition: box-shadow 0.3s; }
+  header.scrolled { box-shadow: 0 1px 20px rgba(0,0,0,0.06); }
+  .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 40px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .nav-links { display: flex; gap: 28px; list-style: none; align-items: center; }
+  .nav-links a { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; color: var(--mid); transition: color 0.2s; }
+  .nav-links a:hover { color: var(--black); }
+  .nav-right { display: flex; align-items: center; gap: 20px; }
+  .nav-cta { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; padding: 8px 20px; border: 1px solid var(--black); color: var(--black); text-decoration: none; transition: all 0.2s; background: none; cursor: pointer; }
+  .nav-cta:hover { background: var(--black); color: var(--paper); }
+
+  /* ---- LANG TOGGLE ---- */
+  .lang-toggle { display: flex; gap: 0; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; border: 1px solid var(--border); }
+  .lang-toggle button { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; padding: 6px 12px; border: none; background: none; color: var(--mid); cursor: pointer; transition: all 0.2s; }
+  .lang-toggle button.active { background: var(--black); color: var(--paper); }
+  .lang-toggle button:not(.active):hover { color: var(--black); }
+
+  /* ---- HERO ---- */
+  .hero { padding: 160px 0 100px; position: relative; overflow: hidden; }
+  .hero-ref { font-size: 9px; letter-spacing: 4px; text-transform: uppercase; color: var(--mid); margin-bottom: 40px; }
+  .hero-barcode-wrap { margin-bottom: 6px; }
+  .hero-barcode-num { font-size: 10px; color: var(--dim); letter-spacing: 4px; margin-bottom: 28px; }
+  .hero h1 { font-family: var(--mono); font-size: clamp(32px, 5vw, 56px); font-weight: 700; letter-spacing: 8px; text-transform: uppercase; line-height: 1.1; margin-bottom: 32px; }
+  .hero-sub { font-family: var(--sans); font-size: 18px; font-weight: 400; color: #555; max-width: 580px; line-height: 1.65; margin-bottom: 48px; }
+  .hero-meta { display: flex; gap: 40px; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .hero-meta-item .label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--mid); }
+  .hero-meta-item .value { font-size: 11px; font-weight: 600; color: var(--black); margin-top: 4px; letter-spacing: 1px; }
+
+  /* ---- SERVICES ---- */
+  .what-section { padding: 100px 0; }
+  .what-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 64px; flex-wrap: wrap; gap: 16px; }
+  .what-header h2 { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--mid); }
+  .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+  .service-cell { background: var(--paper); padding: 40px 32px; display: flex; flex-direction: column; gap: 16px; transition: background 0.25s; cursor: default; }
+  .service-cell:hover { background: #edeae3; }
+  .service-num { font-size: 9px; letter-spacing: 3px; color: var(--dim); }
+  .service-symbol { font-size: 24px; font-weight: 300; color: var(--black); opacity: 0.5; line-height: 1; }
+  .service-name { font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--black); }
+  .service-desc { font-family: var(--sans); font-size: 14px; color: #666; line-height: 1.6; }
+  .service-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; }
+  .service-tag { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border: 1px solid var(--border); color: var(--mid); }
+
+  /* ---- METHOD ---- */
+  .method-section { padding: 100px 0; background: var(--dark-paper); color: var(--white); }
+  .method-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 72px; flex-wrap: wrap; gap: 16px; }
+  .method-header h2 { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: #555; }
+  .process-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid #222; margin-bottom: 64px; }
+  .process-step { padding: 40px 28px; border-right: 1px solid #222; position: relative; transition: background 0.3s; }
+  .process-step:last-child { border-right: none; }
+  .process-step:hover { background: #161616; }
+  .process-step .step-num { font-size: 36px; font-weight: 700; color: #1a1a1a; margin-bottom: 20px; line-height: 1; }
+  .process-step:hover .step-num { color: var(--accent); }
+  .process-step .step-name { font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--white); margin-bottom: 12px; }
+  .process-step .step-desc { font-family: var(--sans); font-size: 13px; color: #666; line-height: 1.6; }
+  .method-note { font-family: var(--sans); font-size: 15px; color: #666; max-width: 600px; line-height: 1.7; }
+  .method-note strong { color: var(--white); font-weight: 500; }
+
+  /* ---- WHY US ---- */
+  .why-section { padding: 100px 0; }
+  .why-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 64px; flex-wrap: wrap; gap: 16px; }
+  .why-header h2 { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--mid); }
+  .values-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 1px solid var(--border); }
+  .value-item { padding: 32px 0; border-bottom: 1px solid var(--border); display: flex; gap: 24px; align-items: flex-start; }
+  .value-item:nth-child(odd) { padding-right: 40px; border-right: 1px solid var(--border); }
+  .value-item:nth-child(even) { padding-left: 40px; }
+  .value-symbol { font-size: 18px; font-weight: 300; color: var(--mid); min-width: 28px; text-align: center; padding-top: 2px; }
+  .value-name { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--black); margin-bottom: 8px; }
+  .value-desc { font-family: var(--sans); font-size: 14px; color: #666; line-height: 1.6; }
+
+  /* ---- TEAM ---- */
+  .team-section { padding: 100px 0; background: var(--dark-paper); color: var(--white); }
+  .team-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 72px; flex-wrap: wrap; gap: 16px; }
+  .team-header h2 { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: #555; }
+  .team-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #222; border: 1px solid #222; }
+  .team-card { background: var(--dark-paper); padding: 36px 24px; transition: background 0.25s; }
+  .team-card:hover { background: #161616; }
+  .team-card .card-barcode { display: flex; align-items: flex-end; gap: 0; margin-bottom: 20px; }
+  .team-card .card-barcode .bar { background: var(--white); flex-shrink: 0; }
+  .team-card .card-alias { font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+  .team-card .card-name { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--white); margin-bottom: 6px; }
+  .team-card .card-role { font-family: var(--sans); font-size: 12px; color: #666; line-height: 1.5; }
+  .team-card .card-id { font-size: 9px; color: #333; letter-spacing: 3px; margin-top: 16px; }
+  @media (max-width: 768px) {
+    .team-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ---- CTA ---- */
+  .cta-section { padding: 100px 0; text-align: center; }
+  .cta-icon { display: flex; justify-content: center; margin-bottom: 32px; }
+  .cta-section h2 { font-size: clamp(24px, 3.5vw, 36px); font-weight: 700; letter-spacing: 6px; text-transform: uppercase; margin-bottom: 20px; }
+  .cta-desc { font-family: var(--sans); font-size: 16px; color: #666; max-width: 480px; margin: 0 auto 48px; line-height: 1.6; }
+  .cta-btn { display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; padding: 16px 48px; border: 2px solid var(--black); color: var(--black); text-decoration: none; transition: all 0.25s; background: none; cursor: pointer; }
+  .cta-btn:hover { background: var(--black); color: var(--paper); }
+
+  /* ---- MODAL ---- */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,10,0.7); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--paper); max-width: 520px; width: 90%; padding: 48px 40px; position: relative; border: 1px solid var(--border); }
+  .modal-close { position: absolute; top: 16px; right: 20px; font-family: var(--mono); font-size: 18px; background: none; border: none; cursor: pointer; color: var(--mid); transition: color 0.2s; padding: 4px 8px; }
+  .modal-close:hover { color: var(--black); }
+  .modal-ref { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: var(--mid); margin-bottom: 24px; }
+  .modal h3 { font-family: var(--mono); font-size: 16px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 8px; }
+  .modal-sub { font-family: var(--sans); font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 32px; }
+  .form-group { margin-bottom: 20px; }
+  .form-group label { display: block; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--mid); margin-bottom: 8px; }
+  .form-group input, .form-group textarea, .form-group select { width: 100%; font-family: var(--mono); font-size: 13px; padding: 12px 14px; border: 1px solid var(--border); background: var(--paper); color: var(--black); outline: none; transition: border-color 0.2s; }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-group select { appearance: none; cursor: pointer; }
+  .form-submit { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; padding: 14px 40px; border: 2px solid var(--black); color: var(--black); background: none; cursor: pointer; transition: all 0.25s; width: 100%; margin-top: 8px; }
+  .form-submit:hover { background: var(--black); color: var(--paper); }
+  .form-success { display: none; text-align: center; padding: 24px 0; }
+  .form-success .check { font-size: 32px; color: var(--accent); margin-bottom: 16px; }
+  .form-success p { font-family: var(--sans); font-size: 15px; color: #555; line-height: 1.6; }
+
+  /* ---- FOOTER ---- */
+  footer { background: var(--dark-paper); border-top: 1px solid #222; padding: 48px 0; color: #444; }
+  .footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+  .footer-left { display: flex; align-items: center; gap: 16px; }
+  .footer-text { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #333; }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; color: #444; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--white); }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 768px) {
+    .container { padding: 0 24px; }
+    .nav-links { display: none; }
+    .nav-inner { padding: 0 24px; }
+    .process-flow { grid-template-columns: 1fr 1fr; }
+    .process-step:nth-child(2) { border-right: none; }
+    .values-list { grid-template-columns: 1fr; }
+    .value-item:nth-child(odd) { padding-right: 0; border-right: none; }
+    .value-item:nth-child(even) { padding-left: 0; }
+    .hero-meta { gap: 24px; }
+    .modal { padding: 36px 24px; }
+  }
+
+  /* ---- ANIMATIONS ---- */
+  .anim-ready .anim { opacity: 0; transform: translateY(16px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .anim-ready .anim.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo-link">
+      <svg class="nav-logo-svg" width="102" height="22" viewBox="0 0 102 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 13.8978V0H2.12V13.8978H0ZM2.82667 13.8978V0H3.53333V13.8978H2.82667ZM5.65333 13.8978V0H7.77333V13.8978H5.65333ZM8.48 13.8978V0H9.18667V13.8978H8.48ZM9.89333 13.8978V0H10.6V13.8978H9.89333ZM5.65333 21.5062C5.30785 21.5062 4.99378 21.4356 4.71111 21.2942C4.42844 21.1529 4.20074 20.9409 4.028 20.6582L4.59333 20.2578L4.61689 20.2813C4.61689 20.3441 4.62474 20.3991 4.64044 20.4462C4.65615 20.4776 4.69541 20.5247 4.75822 20.5876C4.86815 20.7289 5.00163 20.831 5.15867 20.8938C5.3 20.9409 5.47274 20.9644 5.67689 20.9644C5.86533 20.9644 6.03807 20.9173 6.19511 20.8231C6.36785 20.7132 6.50133 20.5561 6.59556 20.352C6.68978 20.1636 6.73689 19.9359 6.73689 19.6689C6.73689 19.2763 6.62696 18.9622 6.40711 18.7267C6.20296 18.4911 5.936 18.3733 5.60622 18.3733C5.43348 18.3733 5.25289 18.4204 5.06444 18.5147C4.8917 18.6089 4.73467 18.7345 4.59333 18.8916L4.21644 18.7267L4.38133 15.9471H7.16089V16.5124H4.89956L4.82889 18.0671C5.11156 17.9258 5.40993 17.8551 5.724 17.8551C6.03807 17.8551 6.31289 17.9336 6.54845 18.0907C6.7997 18.232 6.996 18.444 7.13733 18.7267C7.27867 19.0093 7.34933 19.3313 7.34933 19.6924C7.34933 20.0693 7.27867 20.3913 7.13733 20.6582C6.9803 20.9409 6.77615 21.1529 6.52489 21.2942C6.25793 21.4356 5.96741 21.5062 5.65333 21.5062Z" fill="currentColor"/><path d="M11.3177 13.8978V0H13.4377V13.8978H11.3177ZM14.1444 13.8978V0H16.2644V13.8978H14.1444ZM16.971 13.8978V0H17.6777V13.8978H16.971ZM18.3844 13.8978V0H19.091V13.8978H18.3844ZM21.211 13.8978V0H21.9177V13.8978H21.211ZM15.1337 15.9471H15.6284L16.971 18.6324L18.3373 15.9471H18.8084V21.412H18.2195V17.2898L17.0417 19.504H16.8062L15.699 17.3133V21.412H15.1337V15.9471Z" fill="currentColor"/><path d="M22.6354 13.8978V0H24.7554V13.8978H22.6354ZM25.4621 13.8978V0H26.1687V13.8978H25.4621ZM26.8754 13.8978V0H28.9954V13.8978H26.8754ZM31.1154 13.8978V0H31.8221V13.8978H31.1154ZM32.5288 13.8978V0H33.2354V13.8978H32.5288ZM26.6163 15.9471H29.9612V16.4889H27.1816V18.2791H29.4901V18.8444H27.1816V20.8702H29.9376V21.412H26.6163V15.9471Z" fill="currentColor"/><path d="M33.9531 13.8978V0H36.0731V13.8978H33.9531ZM36.7798 13.8978V0H37.4865V13.8978H36.7798ZM38.1931 13.8978V0H38.8998V13.8978H38.1931ZM39.6065 13.8978V0H41.7265V13.8978H39.6065ZM43.8465 13.8978V0H44.5531V13.8978H43.8465ZM37.9105 15.9471H39.5122C40.1404 15.9471 40.5958 16.0884 40.8785 16.3711C41.1768 16.6381 41.326 17.0228 41.326 17.5253C41.326 17.8394 41.2239 18.1378 41.0198 18.4204C40.8156 18.7031 40.5487 18.8916 40.2189 18.9858L41.4909 21.412H40.8078L39.5829 19.0093H38.5229V21.412H37.9105V15.9471ZM39.5829 18.4676C39.9598 18.4676 40.2425 18.3812 40.4309 18.2084C40.6036 18.0514 40.69 17.8237 40.69 17.5253C40.69 17.227 40.6036 16.9836 40.4309 16.7951C40.2425 16.6224 39.9598 16.536 39.5829 16.536H38.5229V18.4676H39.5829Z" fill="currentColor"/><path d="M45.2708 13.8978V0H45.9775V13.8978H45.2708ZM46.6842 13.8978V0H48.8042V13.8978H46.6842ZM49.5108 13.8978V0H50.2175V13.8978H49.5108ZM52.3375 13.8978V0H54.4575V13.8978H52.3375ZM55.1642 13.8978V0H55.8708V13.8978H55.1642ZM49.4402 20.8938H50.5237V16.4653H49.5108V15.9471H52.2197V16.4653H51.1362V20.8938H52.2668V21.412H49.4402V20.8938Z" fill="currentColor"/><path d="M56.5885 13.8978V0H57.2952V13.8978H56.5885ZM58.0019 13.8978V0H58.7085V13.8978H58.0019ZM59.4152 13.8978V0H61.5352V13.8978H59.4152ZM63.6552 13.8978V0H64.3619V13.8978H63.6552ZM65.0685 13.8978V0H67.1885V13.8978H65.0685ZM60.5223 15.9471H61.7943C62.2497 15.9471 62.6031 16.0099 62.8543 16.1356C63.1213 16.2612 63.349 16.4496 63.5374 16.7009C63.8986 17.172 64.0792 17.8394 64.0792 18.7031C64.0478 19.5982 63.8437 20.2735 63.4668 20.7289C63.0899 21.2 62.501 21.4277 61.7001 21.412H60.5223V15.9471ZM61.653 20.9409C62.8622 20.9409 63.4668 20.2107 63.4668 18.7502C63.4668 18.0121 63.3333 17.4468 63.0663 17.0542C62.7837 16.6616 62.3439 16.4653 61.7472 16.4653H61.1112V20.9409H61.653Z" fill="currentColor"/><path d="M67.9062 13.8978V0H68.6129V13.8978H67.9062ZM69.3196 13.8978V0H71.4396V13.8978H69.3196ZM72.1462 13.8978V0H72.8529V13.8978H72.1462ZM74.9729 13.8978V0H77.0929V13.8978H74.9729ZM77.7996 13.8978V0H78.5062V13.8978H77.7996ZM72.0756 20.8938H73.1591V16.4653H72.1462V15.9471H74.8551V16.4653H73.7716V20.8938H74.9023V21.412H72.0756V20.8938Z" fill="currentColor"/><path d="M79.224 13.8978V0H81.344V13.8978H79.224ZM82.0506 13.8978V0H82.7573V13.8978H82.0506ZM83.464 13.8978V0H84.1706V13.8978H83.464ZM86.2906 13.8978V0H86.9973V13.8978H86.2906ZM87.704 13.8978V0H89.824V13.8978H87.704ZM85.7488 19.8102H83.9822L83.4404 21.412H82.828L84.8302 15.8529H84.9008L86.9266 21.412H86.2906L85.7488 19.8102ZM85.584 19.3391L84.8773 17.2662L84.1471 19.3391H85.584Z" fill="currentColor"/><path d="M90.5417 13.8978V0H91.2483V13.8978H90.5417ZM91.955 13.8978V0H92.6617V13.8978H91.955ZM93.3683 13.8978V0H95.4883V13.8978H93.3683ZM96.195 13.8978V0H96.9017V13.8978H96.195ZM99.0217 13.8978V0H101.142V13.8978H99.0217ZM94.4519 15.9471H95.0408L97.3257 19.9987V15.9471H98.0088V16.0178C97.9617 16.0492 97.9381 16.0884 97.9381 16.1356C97.9224 16.167 97.9146 16.2376 97.9146 16.3476V21.412H97.4434L95.0172 17.1249V21.412H94.4519V15.9471Z" fill="currentColor"/></svg>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#servicios" data-es="Servicios" data-en="Services">Servicios</a></li>
+      <li><a href="#metodo" data-es="Método" data-en="Method">Método</a></li>
+      <li><a href="#porque" data-es="Diferencial" data-en="Why Us">Diferencial</a></li>
+      <li><a href="#equipo" data-es="Equipo" data-en="Team">Equipo</a></li>
+    </ul>
+    <div class="nav-right">
+      <div class="lang-toggle">
+        <button id="lang-es" class="active" onclick="setLang('es')">ES</button>
+        <button id="lang-en" onclick="setLang('en')">EN</button>
+      </div>
+      <a href="#contacto" class="nav-cta" data-es="Contacto" data-en="Contact">Contacto</a>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="inicio">
+  <div class="container">
+    <div class="hero-ref">REF://5M—OPS—2026</div>
+    <div class="hero-barcode-wrap">
+      <div class="barcode" id="hero-barcode" style="height:90px;"></div>
+    </div>
+    <div class="hero-barcode-num">5 2 0 8 4 1 3 7 6 0 9</div>
+    <h1 data-es="Donde la estrategia<br>se convierte<br>en operación" data-en="Where strategy<br>becomes<br>operation">Donde la estrategia<br>se convierte<br>en operación</h1>
+    <p class="hero-sub" data-es="Traducimos objetivos de negocio en procesos concretos, herramientas funcionales y métricas que realmente se usan. No vendemos software ni implementaciones genéricas: diseñamos la estructura que sostiene el crecimiento." data-en="We translate business objectives into concrete processes, functional tools, and metrics that are actually used. We don't sell software or generic implementations: we design the structure that sustains growth.">Traducimos objetivos de negocio en procesos concretos, herramientas funcionales y métricas que realmente se usan. No vendemos software ni implementaciones genéricas: diseñamos la estructura que sostiene el crecimiento.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><div class="label">Est.</div><div class="value">2026</div></div>
+      <div class="hero-meta-item"><div class="label">Ops.</div><div class="value">ES / AR / BR</div></div>
+      <div class="hero-meta-item"><div class="label">Ref.</div><div class="value">5M—001</div></div>
+      <div class="hero-meta-item"><div class="label" data-es="Base" data-en="Base">Base</div><div class="value">Valencia, España</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="what-section section-border" id="servicios">
+  <div class="container">
+    <div class="what-header">
+      <h2 data-es="Servicios // Líneas de operación" data-en="Services // Lines of operation">Servicios // Líneas de operación</h2>
+      <span class="ref-tag">SEC—002</span>
+    </div>
+    <div class="services-grid">
+      <div class="service-cell anim">
+        <div class="service-num">001</div>
+        <div class="service-symbol">//</div>
+        <div class="service-name" data-es="Transformación operativa" data-en="Operational transformation">Transformación operativa</div>
+        <div class="service-desc" data-es="Inmersión en tu negocio para estandarizar procesos, eliminar cuellos de botella y diseñar flujos que no dependan de la memoria de tres personas." data-en="Deep dive into your business to standardize processes, eliminate bottlenecks, and design workflows that don't depend on three people's memory.">Inmersión en tu negocio para estandarizar procesos, eliminar cuellos de botella y diseñar flujos que no dependan de la memoria de tres personas.</div>
+        <div class="service-tags">
+          <span class="service-tag" data-es="Análisis end-to-end" data-en="End-to-end analysis">Análisis end-to-end</span>
+          <span class="service-tag" data-es="Procesos TO-BE" data-en="TO-BE processes">Procesos TO-BE</span>
+          <span class="service-tag" data-es="Documentación" data-en="Documentation">Documentación</span>
+        </div>
+      </div>
+      <div class="service-cell anim">
+        <div class="service-num">002</div>
+        <div class="service-symbol">::</div>
+        <div class="service-name" data-es="Implementación Odoo" data-en="Odoo implementation">Implementación Odoo</div>
+        <div class="service-desc" data-es="Arquitectura, configuración y despliegue de Odoo como eje operativo de tu empresa. Módulos a medida, migraciones y formación del equipo." data-en="Architecture, configuration, and deployment of Odoo as your company's operational backbone. Custom modules, migrations, and team training.">Arquitectura, configuración y despliegue de Odoo como eje operativo de tu empresa. Módulos a medida, migraciones y formación del equipo.</div>
+        <div class="service-tags">
+          <span class="service-tag">ERP</span>
+          <span class="service-tag">CRM</span>
+          <span class="service-tag" data-es="Módulos custom" data-en="Custom modules">Módulos custom</span>
+        </div>
+      </div>
+      <div class="service-cell anim">
+        <div class="service-num">003</div>
+        <div class="service-symbol">→</div>
+        <div class="service-name" data-es="Automatización e integraciones" data-en="Automation & integrations">Automatización e integraciones</div>
+        <div class="service-desc" data-es="Conectamos tus herramientas para que la información fluya sin intervención manual donde no aporta valor. Webhooks, APIs, flujos n8n." data-en="We connect your tools so information flows without manual intervention where it adds no value. Webhooks, APIs, n8n workflows.">Conectamos tus herramientas para que la información fluya sin intervención manual donde no aporta valor. Webhooks, APIs, flujos n8n.</div>
+        <div class="service-tags">
+          <span class="service-tag">n8n</span>
+          <span class="service-tag">APIs</span>
+          <span class="service-tag">Webhooks</span>
+        </div>
+      </div>
+      <div class="service-cell anim">
+        <div class="service-num">004</div>
+        <div class="service-symbol">⊕</div>
+        <div class="service-name" data-es="Estrategia y control" data-en="Strategy & control">Estrategia y control</div>
+        <div class="service-desc" data-es="Dashboards con los indicadores que importan. KPIs y OKRs diseñados para tomar decisiones con información, no con intuición." data-en="Dashboards with the metrics that matter. KPIs and OKRs designed to make decisions with data, not intuition.">Dashboards con los indicadores que importan. KPIs y OKRs diseñados para tomar decisiones con información, no con intuición.</div>
+        <div class="service-tags">
+          <span class="service-tag">KPIs/OKRs</span>
+          <span class="service-tag" data-es="Cuadro de mando" data-en="Dashboard">Cuadro de mando</span>
+          <span class="service-tag">BigQuery</span>
+        </div>
+      </div>
+      <div class="service-cell anim">
+        <div class="service-num">005</div>
+        <div class="service-symbol">{}</div>
+        <div class="service-name" data-es="Web design y desarrollo" data-en="Web design & development">Web design y desarrollo</div>
+        <div class="service-desc" data-es="Sitios con propósito. Desde landing pages hasta plataformas completas, diseñadas para convertir y construidas para escalar." data-en="Websites with purpose. From landing pages to full platforms, designed to convert and built to scale.">Sitios con propósito. Desde landing pages hasta plataformas completas, diseñadas para convertir y construidas para escalar.</div>
+        <div class="service-tags">
+          <span class="service-tag">Landing pages</span>
+          <span class="service-tag" data-es="Sitios web" data-en="Websites">Sitios web</span>
+          <span class="service-tag">UI/UX</span>
+        </div>
+      </div>
+      <div class="service-cell anim">
+        <div class="service-num">006</div>
+        <div class="service-symbol">△</div>
+        <div class="service-name" data-es="Branding y marca" data-en="Branding & identity">Branding y marca</div>
+        <div class="service-desc" data-es="Estrategia de marca, identidad visual y verbal, guía de marca y papelería. Branding que va más allá del logotipo para conectar con tu público." data-en="Brand strategy, visual and verbal identity, brand guidelines, and stationery. Branding that goes beyond the logo to connect with your audience.">Estrategia de marca, identidad visual y verbal, guía de marca y papelería. Branding que va más allá del logotipo para conectar con tu público.</div>
+        <div class="service-tags">
+          <span class="service-tag" data-es="Estrategia" data-en="Strategy">Estrategia</span>
+          <span class="service-tag" data-es="Identidad visual" data-en="Visual identity">Identidad visual</span>
+          <span class="service-tag" data-es="Guía de marca" data-en="Brand guide">Guía de marca</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- METHOD -->
+<section class="method-section" id="metodo">
+  <div class="container">
+    <div class="method-header">
+      <h2 data-es="Método // Workflow operativo" data-en="Method // Operational workflow">Método // Workflow operativo</h2>
+      <span class="ref-tag" style="color:#444;">SEC—003</span>
+    </div>
+    <div class="process-flow">
+      <div class="process-step anim">
+        <div class="step-num">01</div>
+        <div class="step-name" data-es="Analizar" data-en="Analyze">Analizar</div>
+        <div class="step-desc" data-es="Inmersión técnica en todas las áreas del negocio. Entrevistas, observación de procesos, datos y detección de cuellos de botella." data-en="Technical deep dive into every area of the business. Interviews, process observation, data, and bottleneck detection.">Inmersión técnica en todas las áreas del negocio. Entrevistas, observación de procesos, datos y detección de cuellos de botella.</div>
+      </div>
+      <div class="process-step anim">
+        <div class="step-num">02</div>
+        <div class="step-name" data-es="Plasmar" data-en="Design">Plasmar</div>
+        <div class="step-desc" data-es="Diseño de flujos TO-BE, arquitectura de solución y mapa de herramientas. La operación dibujada antes de construir." data-en="TO-BE workflow design, solution architecture, and tool mapping. The operation drawn before building.">Diseño de flujos TO-BE, arquitectura de solución y mapa de herramientas. La operación dibujada antes de construir.</div>
+      </div>
+      <div class="process-step anim">
+        <div class="step-num">03</div>
+        <div class="step-name" data-es="Validar" data-en="Validate">Validar</div>
+        <div class="step-desc" data-es="Testeo con el equipo, documentación completa, manual del CEO y cuadro de mando configurado." data-en="Team testing, complete documentation, CEO manual, and configured dashboard.">Testeo con el equipo, documentación completa, manual del CEO y cuadro de mando configurado.</div>
+      </div>
+      <div class="process-step anim">
+        <div class="step-num">04</div>
+        <div class="step-name" data-es="Entregar" data-en="Deliver">Entregar</div>
+        <div class="step-desc" data-es="Presentación de resultados, hoja de ruta priorizada y dashboards de seguimiento. Soporte continuo." data-en="Results presentation, prioritized roadmap, and tracking dashboards. Ongoing support.">Presentación de resultados, hoja de ruta priorizada y dashboards de seguimiento. Soporte continuo.</div>
+      </div>
+    </div>
+    <div class="method-note anim">
+      <strong data-es="Nuestro ADN de trabajo, vuestro método." data-en="Our working DNA, your method.">Nuestro ADN de trabajo, vuestro método.</strong><span data-es=" Muchas empresas invierten en tecnología sin un plan claro. El resultado: herramientas subutilizadas, equipos resistentes al cambio y datos que nadie consulta. Nosotros resolvemos exactamente eso." data-en=" Many companies invest in technology without a clear plan. The result: underused tools, change-resistant teams, and data nobody checks. We solve exactly that."> Muchas empresas invierten en tecnología sin un plan claro. El resultado: herramientas subutilizadas, equipos resistentes al cambio y datos que nadie consulta. Nosotros resolvemos exactamente eso.</span>
+    </div>
+  </div>
+</section>
+
+<!-- WHY US -->
+<section class="why-section section-border" id="porque">
+  <div class="container">
+    <div class="why-header">
+      <h2 data-es="Diferencial // Por qué nosotros" data-en="Differentiator // Why us">Diferencial // Por qué nosotros</h2>
+      <span class="ref-tag">SEC—004</span>
+    </div>
+    <div class="values-list">
+      <div class="value-item anim">
+        <div class="value-symbol">//</div>
+        <div class="value-content">
+          <div class="value-name" data-es="Raíz, no síntoma" data-en="Root cause, not symptoms">Raíz, no síntoma</div>
+          <div class="value-desc" data-es="No buscamos cambios superficiales. Planificación meticulosa para resolver las necesidades específicas de lo que has construido." data-en="We don't chase surface-level changes. Meticulous planning to solve the specific needs of what you've built.">No buscamos cambios superficiales. Planificación meticulosa para resolver las necesidades específicas de lo que has construido.</div>
+        </div>
+      </div>
+      <div class="value-item anim">
+        <div class="value-symbol">::</div>
+        <div class="value-content">
+          <div class="value-name" data-es="Adopción real" data-en="Real adoption">Adopción real</div>
+          <div class="value-desc" data-es="La mejor herramienta fracasa si el equipo no la usa. Aplicamos metodologías de gestión del cambio para que la transición sea real." data-en="The best tool fails if the team doesn't use it. We apply change management methodologies to make the transition real.">La mejor herramienta fracasa si el equipo no la usa. Aplicamos metodologías de gestión del cambio para que la transición sea real.</div>
+        </div>
+      </div>
+      <div class="value-item anim">
+        <div class="value-symbol">→</div>
+        <div class="value-content">
+          <div class="value-name" data-es="Control financiero" data-en="Financial control">Control financiero</div>
+          <div class="value-desc" data-es="Conectamos datos operativos con financieros para que cada decisión tenga visibilidad de costos. Sin sorpresas a fin de mes." data-en="We connect operational data with financials so every decision has cost visibility. No end-of-month surprises.">Conectamos datos operativos con financieros para que cada decisión tenga visibilidad de costos. Sin sorpresas a fin de mes.</div>
+        </div>
+      </div>
+      <div class="value-item anim">
+        <div class="value-symbol">⊕</div>
+        <div class="value-content">
+          <div class="value-name" data-es="Tecnología con propósito" data-en="Technology with purpose">Tecnología con propósito</div>
+          <div class="value-desc" data-es="Automatizamos lo que tiene sentido automatizar. No vendemos tecnología por vender — diseñamos la arquitectura que tu operación necesita." data-en="We automate what makes sense to automate. We don't sell technology for the sake of it — we design the architecture your operation needs.">Automatizamos lo que tiene sentido automatizar. No vendemos tecnología por vender — diseñamos la arquitectura que tu operación necesita.</div>
+        </div>
+      </div>
+      <div class="value-item anim">
+        <div class="value-symbol">{}</div>
+        <div class="value-content">
+          <div class="value-name" data-es="Visión global" data-en="Global vision">Visión global</div>
+          <div class="value-desc" data-es="Alineamos la operación con los objetivos de venta. Identificamos qué frena el crecimiento, dónde se pierde margen y cómo escalar." data-en="We align operations with sales objectives. We identify what slows growth, where margin is lost, and how to scale.">Alineamos la operación con los objetivos de venta. Identificamos qué frena el crecimiento, dónde se pierde margen y cómo escalar.</div>
+        </div>
+      </div>
+      <div class="value-item anim">
+        <div class="value-symbol">△</div>
+        <div class="value-content">
+          <div class="value-name" data-es="Equipo latinoamericano en España" data-en="Latin American team in Spain">Equipo latinoamericano en España</div>
+          <div class="value-desc" data-es="Cinco caminos desde el sur convergiendo en un punto. Experiencia combinada en diseño, desarrollo, datos y estrategia operativa." data-en="Five paths from the south converging at one point. Combined experience in design, development, data, and operational strategy.">Cinco caminos desde el sur convergiendo en un punto. Experiencia combinada en diseño, desarrollo, datos y estrategia operativa.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team-section" id="equipo">
+  <div class="container">
+    <div class="team-header">
+      <h2 data-es="Equipo // Los 5 operadores" data-en="Team // The 5 operators">Equipo // Los 5 operadores</h2>
+      <span class="ref-tag" style="color:#444;">SEC—005</span>
+    </div>
+    <div class="team-grid">
+      <div class="team-card anim">
+        <div class="card-barcode" data-bars="10"></div>
+        <div class="card-alias">Query</div>
+        <div class="card-name">—</div>
+        <div class="card-role">Financial & Data</div>
+        <div class="card-id">OP—003 // AR</div>
+      </div>
+      <div class="team-card anim">
+        <div class="card-barcode" data-bars="10"></div>
+        <div class="card-alias">Pixel</div>
+        <div class="card-name">—</div>
+        <div class="card-role">Design & Development</div>
+        <div class="card-id">OP—001 // BR</div>
+      </div>
+      <div class="team-card anim">
+        <div class="card-barcode" data-bars="10"></div>
+        <div class="card-alias">Scope</div>
+        <div class="card-name">—</div>
+        <div class="card-role">Analysis & Operations</div>
+        <div class="card-id">OP—005 // AR</div>
+      </div>
+      <div class="team-card anim">
+        <div class="card-barcode" data-bars="10"></div>
+        <div class="card-alias">Radar</div>
+        <div class="card-name">—</div>
+        <div class="card-role">Sales & Investigation</div>
+        <div class="card-id">OP—002 // AR</div>
+      </div>
+      <div class="team-card anim">
+        <div class="card-barcode" data-bars="10"></div>
+        <div class="card-alias">Ping</div>
+        <div class="card-name">—</div>
+        <div class="card-role">Customer Relations</div>
+        <div class="card-id">OP—004 // AR</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section section-border" id="contacto">
+  <div class="container">
+    <div class="cta-icon">
+      <svg width="30" height="42" viewBox="0 0 30 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:52px;width:auto;"><g clip-path="url(#ci)"><path d="M-33.4536 20V-0.849622H-30.2732V20H-33.4536ZM-29.213 20V-0.849622H-28.1529V20H-29.213ZM-24.9724 20V-0.849622H-21.792V20H-24.9724ZM-20.7318 20V-0.849622H-19.6717V20H-20.7318ZM-18.6115 20V-0.849622H-17.5514V20H-18.6115Z" fill="currentColor"/></g><path d="M7.62884 28.7674C9.40989 28.7674 10.7853 29.2819 11.7549 30.3109C12.7444 31.34 13.2392 32.8143 13.2392 34.7339C13.2392 36.6535 12.6949 38.1971 11.6065 39.3646C10.5379 40.5124 9.024 41.0863 7.06484 41.0863C5.50147 41.0863 3.71053 40.6707 1.692 39.8396L2.256 38.3257C4.07663 39.1371 5.68947 39.5427 7.09453 39.5427C8.49958 39.5427 9.588 39.0975 10.3598 38.2069C11.1316 37.2966 11.5175 36.1291 11.5175 34.7042C11.5175 33.2794 11.1613 32.1909 10.4488 31.4389C9.75621 30.6869 8.75684 30.3109 7.45074 30.3109C6.16442 30.3109 4.84842 30.8848 3.50274 32.0326L2.40442 31.7061L2.70126 21.9697H12.6158V23.6023H4.18547L3.97768 30.0438C5.16505 29.1928 6.3821 28.7674 7.62884 28.7674ZM16.2669 40.7895V21.3463H17.8402L22.0257 32.2404H22.4709L26.6564 21.3463H28.2297V40.7895H26.6267V25.7099H26.508L23.3912 33.7543H21.1055L17.9886 25.6802H17.8699V40.7895H16.2669Z" fill="currentColor"/><defs><clipPath id="ci"><rect width="25.5614" height="20.614" fill="white" transform="translate(2.47368)"/></clipPath></defs></svg>
+    </div>
+    <h2 data-es="Iniciemos el análisis" data-en="Let's start the analysis">Iniciemos el análisis</h2>
+    <p class="cta-desc" data-es="El primer paso es entender tu operación. Cuéntanos dónde estás y hacia dónde quieres ir." data-en="The first step is understanding your operation. Tell us where you are and where you want to go.">El primer paso es entender tu operación. Cuéntanos dónde estás y hacia dónde quieres ir.</p>
+    <button class="cta-btn" onclick="openModal()" data-es="→ Solicitar diagnóstico" data-en="→ Request diagnosis">→ Solicitar diagnóstico</button>
+  </div>
+</section>
+
+<!-- DIAGNOSTIC MODAL -->
+<div class="modal-overlay" id="diagModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-form-view">
+      <div class="modal-ref">REF://5M—DIAG</div>
+      <h3 data-es="Solicitar diagnóstico" data-en="Request diagnosis">Solicitar diagnóstico</h3>
+      <p class="modal-sub" data-es="Completa el formulario y nos pondremos en contacto contigo para iniciar el análisis." data-en="Fill out the form and we'll get in touch to start the analysis.">Completa el formulario y nos pondremos en contacto contigo para iniciar el análisis.</p>
+      <div class="form-group">
+        <label data-es="Nombre" data-en="Name">Nombre</label>
+        <input type="text" id="form-name" placeholder="" data-placeholder-es="Tu nombre" data-placeholder-en="Your name">
+      </div>
+      <div class="form-group">
+        <label data-es="Email" data-en="Email">Email</label>
+        <input type="email" id="form-email" placeholder="" data-placeholder-es="tu@empresa.com" data-placeholder-en="you@company.com">
+      </div>
+      <div class="form-group">
+        <label data-es="Empresa" data-en="Company">Empresa</label>
+        <input type="text" id="form-company" placeholder="" data-placeholder-es="Nombre de tu empresa" data-placeholder-en="Your company name">
+      </div>
+      <div class="form-group">
+        <label data-es="¿Qué necesitas?" data-en="What do you need?">¿Qué necesitas?</label>
+        <select id="form-service">
+          <option value="" data-es="Selecciona un servicio" data-en="Select a service">Selecciona un servicio</option>
+          <option value="transformacion" data-es="Transformación operativa" data-en="Operational transformation">Transformación operativa</option>
+          <option value="odoo" data-es="Implementación Odoo" data-en="Odoo implementation">Implementación Odoo</option>
+          <option value="automatizacion" data-es="Automatización e integraciones" data-en="Automation & integrations">Automatización e integraciones</option>
+          <option value="estrategia" data-es="Estrategia y control" data-en="Strategy & control">Estrategia y control</option>
+          <option value="web" data-es="Web design y desarrollo" data-en="Web design & development">Web design y desarrollo</option>
+          <option value="branding" data-es="Branding y marca" data-en="Branding & identity">Branding y marca</option>
+          <option value="otro" data-es="Otro" data-en="Other">Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label data-es="Mensaje" data-en="Message">Mensaje</label>
+        <textarea id="form-message" rows="3" placeholder="" data-placeholder-es="Cuéntanos brevemente tu situación actual..." data-placeholder-en="Briefly tell us about your current situation..."></textarea>
+      </div>
+      <button class="form-submit" onclick="submitForm()" data-es="→ Enviar solicitud" data-en="→ Submit request">→ Enviar solicitud</button>
+    </div>
+    <div class="form-success" id="modal-success-view">
+      <div class="check">✓</div>
+      <h3 data-es="Solicitud enviada" data-en="Request sent" style="font-family:var(--mono);font-size:16px;font-weight:700;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;">Solicitud enviada</h3>
+      <p data-es="Hemos recibido tu información. Nos pondremos en contacto contigo pronto para iniciar el diagnóstico." data-en="We've received your information. We'll get in touch soon to start the diagnosis.">Hemos recibido tu información. Nos pondremos en contacto contigo pronto para iniciar el diagnóstico.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <a href="#" style="text-decoration:none;display:inline-flex;align-items:center;">
+          <svg width="102" height="22" viewBox="0 0 102 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:14px;width:auto;"><path d="M0 13.8978V0H2.12V13.8978H0ZM2.82667 13.8978V0H3.53333V13.8978H2.82667ZM5.65333 13.8978V0H7.77333V13.8978H5.65333ZM8.48 13.8978V0H9.18667V13.8978H8.48ZM9.89333 13.8978V0H10.6V13.8978H9.89333ZM5.65333 21.5062C5.30785 21.5062 4.99378 21.4356 4.71111 21.2942C4.42844 21.1529 4.20074 20.9409 4.028 20.6582L4.59333 20.2578L4.61689 20.2813C4.61689 20.3441 4.62474 20.3991 4.64044 20.4462C4.65615 20.4776 4.69541 20.5247 4.75822 20.5876C4.86815 20.7289 5.00163 20.831 5.15867 20.8938C5.3 20.9409 5.47274 20.9644 5.67689 20.9644C5.86533 20.9644 6.03807 20.9173 6.19511 20.8231C6.36785 20.7132 6.50133 20.5561 6.59556 20.352C6.68978 20.1636 6.73689 19.9359 6.73689 19.6689C6.73689 19.2763 6.62696 18.9622 6.40711 18.7267C6.20296 18.4911 5.936 18.3733 5.60622 18.3733C5.43348 18.3733 5.25289 18.4204 5.06444 18.5147C4.8917 18.6089 4.73467 18.7345 4.59333 18.8916L4.21644 18.7267L4.38133 15.9471H7.16089V16.5124H4.89956L4.82889 18.0671C5.11156 17.9258 5.40993 17.8551 5.724 17.8551C6.03807 17.8551 6.31289 17.9336 6.54845 18.0907C6.7997 18.232 6.996 18.444 7.13733 18.7267C7.27867 19.0093 7.34933 19.3313 7.34933 19.6924C7.34933 20.0693 7.27867 20.3913 7.13733 20.6582C6.9803 20.9409 6.77615 21.1529 6.52489 21.2942C6.25793 21.4356 5.96741 21.5062 5.65333 21.5062Z" fill="#f5f2ec"/><path d="M11.3177 13.8978V0H13.4377V13.8978H11.3177ZM14.1444 13.8978V0H16.2644V13.8978H14.1444ZM16.971 13.8978V0H17.6777V13.8978H16.971ZM18.3844 13.8978V0H19.091V13.8978H18.3844ZM21.211 13.8978V0H21.9177V13.8978H21.211ZM15.1337 15.9471H15.6284L16.971 18.6324L18.3373 15.9471H18.8084V21.412H18.2195V17.2898L17.0417 19.504H16.8062L15.699 17.3133V21.412H15.1337V15.9471Z" fill="#f5f2ec"/><path d="M22.6354 13.8978V0H24.7554V13.8978H22.6354ZM25.4621 13.8978V0H26.1687V13.8978H25.4621ZM26.8754 13.8978V0H28.9954V13.8978H26.8754ZM31.1154 13.8978V0H31.8221V13.8978H31.1154ZM32.5288 13.8978V0H33.2354V13.8978H32.5288ZM26.6163 15.9471H29.9612V16.4889H27.1816V18.2791H29.4901V18.8444H27.1816V20.8702H29.9376V21.412H26.6163V15.9471Z" fill="#f5f2ec"/><path d="M33.9531 13.8978V0H36.0731V13.8978H33.9531ZM36.7798 13.8978V0H37.4865V13.8978H36.7798ZM38.1931 13.8978V0H38.8998V13.8978H38.1931ZM39.6065 13.8978V0H41.7265V13.8978H39.6065ZM43.8465 13.8978V0H44.5531V13.8978H43.8465ZM37.9105 15.9471H39.5122C40.1404 15.9471 40.5958 16.0884 40.8785 16.3711C41.1768 16.6381 41.326 17.0228 41.326 17.5253C41.326 17.8394 41.2239 18.1378 41.0198 18.4204C40.8156 18.7031 40.5487 18.8916 40.2189 18.9858L41.4909 21.412H40.8078L39.5829 19.0093H38.5229V21.412H37.9105V15.9471ZM39.5829 18.4676C39.9598 18.4676 40.2425 18.3812 40.4309 18.2084C40.6036 18.0514 40.69 17.8237 40.69 17.5253C40.69 17.227 40.6036 16.9836 40.4309 16.7951C40.2425 16.6224 39.9598 16.536 39.5829 16.536H38.5229V18.4676H39.5829Z" fill="#f5f2ec"/><path d="M45.2708 13.8978V0H45.9775V13.8978H45.2708ZM46.6842 13.8978V0H48.8042V13.8978H46.6842ZM49.5108 13.8978V0H50.2175V13.8978H49.5108ZM52.3375 13.8978V0H54.4575V13.8978H52.3375ZM55.1642 13.8978V0H55.8708V13.8978H55.1642ZM49.4402 20.8938H50.5237V16.4653H49.5108V15.9471H52.2197V16.4653H51.1362V20.8938H52.2668V21.412H49.4402V20.8938Z" fill="#f5f2ec"/><path d="M56.5885 13.8978V0H57.2952V13.8978H56.5885ZM58.0019 13.8978V0H58.7085V13.8978H58.0019ZM59.4152 13.8978V0H61.5352V13.8978H59.4152ZM63.6552 13.8978V0H64.3619V13.8978H63.6552ZM65.0685 13.8978V0H67.1885V13.8978H65.0685ZM60.5223 15.9471H61.7943C62.2497 15.9471 62.6031 16.0099 62.8543 16.1356C63.1213 16.2612 63.349 16.4496 63.5374 16.7009C63.8986 17.172 64.0792 17.8394 64.0792 18.7031C64.0478 19.5982 63.8437 20.2735 63.4668 20.7289C63.0899 21.2 62.501 21.4277 61.7001 21.412H60.5223V15.9471ZM61.653 20.9409C62.8622 20.9409 63.4668 20.2107 63.4668 18.7502C63.4668 18.0121 63.3333 17.4468 63.0663 17.0542C62.7837 16.6616 62.3439 16.4653 61.7472 16.4653H61.1112V20.9409H61.653Z" fill="#f5f2ec"/><path d="M67.9062 13.8978V0H68.6129V13.8978H67.9062ZM69.3196 13.8978V0H71.4396V13.8978H69.3196ZM72.1462 13.8978V0H72.8529V13.8978H72.1462ZM74.9729 13.8978V0H77.0929V13.8978H74.9729ZM77.7996 13.8978V0H78.5062V13.8978H77.7996ZM72.0756 20.8938H73.1591V16.4653H72.1462V15.9471H74.8551V16.4653H73.7716V20.8938H74.9023V21.412H72.0756V20.8938Z" fill="#f5f2ec"/><path d="M79.224 13.8978V0H81.344V13.8978H79.224ZM82.0506 13.8978V0H82.7573V13.8978H82.0506ZM83.464 13.8978V0H84.1706V13.8978H83.464ZM86.2906 13.8978V0H86.9973V13.8978H86.2906ZM87.704 13.8978V0H89.824V13.8978H87.704ZM85.7488 19.8102H83.9822L83.4404 21.412H82.828L84.8302 15.8529H84.9008L86.9266 21.412H86.2906L85.7488 19.8102ZM85.584 19.3391L84.8773 17.2662L84.1471 19.3391H85.584Z" fill="#f5f2ec"/><path d="M90.5417 13.8978V0H91.2483V13.8978H90.5417ZM91.955 13.8978V0H92.6617V13.8978H91.955ZM93.3683 13.8978V0H95.4883V13.8978H93.3683ZM96.195 13.8978V0H96.9017V13.8978H96.195ZM99.0217 13.8978V0H101.142V13.8978H99.0217ZM94.4519 15.9471H95.0408L97.3257 19.9987V15.9471H98.0088V16.0178C97.9617 16.0492 97.9381 16.0884 97.9381 16.1356C97.9224 16.167 97.9146 16.2376 97.9146 16.3476V21.412H97.4434L95.0172 17.1249V21.412H94.4519V15.9471Z" fill="#f5f2ec"/></svg>
+        </a>
+        <span class="footer-text">© 2026</span>
+      </div>
+      <div class="footer-links">
+        <a href="#">Valencia, ES</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ---- LANGUAGE SYSTEM ----
+var currentLang = 'es';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  document.getElementById('lang-es').classList.toggle('active', lang === 'es');
+  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+
+  // Update all elements with data-es / data-en
+  document.querySelectorAll('[data-' + lang + ']').forEach(function(el) {
+    // Skip input/textarea/select — handled separately
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return;
+    var val = el.getAttribute('data-' + lang);
+    if (val !== null) el.innerHTML = val;
+  });
+
+  // Update placeholders
+  var placeholderAttr = 'data-placeholder-' + lang;
+  document.querySelectorAll('[' + placeholderAttr + ']').forEach(function(el) {
+    el.placeholder = el.getAttribute(placeholderAttr);
+  });
+
+  // Update select options
+  document.querySelectorAll('select option[data-' + lang + ']').forEach(function(opt) {
+    opt.textContent = opt.getAttribute('data-' + lang);
+  });
+
+  // Update page title
+  document.title = lang === 'es'
+    ? '5 Meridian — Transformación Operativa y Digital'
+    : '5 Meridian — Operational & Digital Transformation';
+}
+
+// Initialize placeholders on load
+document.addEventListener('DOMContentLoaded', function() { setLang('es'); });
+
+// ---- MODAL ----
+function openModal() {
+  document.getElementById('diagModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('modal-form-view').style.display = 'block';
+  document.getElementById('modal-success-view').style.display = 'none';
+}
+
+function closeModal() {
+  document.getElementById('diagModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target.id === 'diagModal') closeModal();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+function submitForm() {
+  var name = document.getElementById('form-name').value.trim();
+  var email = document.getElementById('form-email').value.trim();
+  var company = document.getElementById('form-company').value.trim();
+  var service = document.getElementById('form-service').value;
+  var message = document.getElementById('form-message').value.trim();
+
+  if (!name || !email) {
+    alert(currentLang === 'es' ? 'Por favor completa al menos nombre y email.' : 'Please fill in at least name and email.');
+    return;
+  }
+
+  var payload = {
+    name: name,
+    email: email,
+    company: company,
+    service: service,
+    message: message,
+    lang: currentLang,
+    timestamp: new Date().toISOString()
+  };
+
+  // =============================================
+  // TODO: Replace this URL with your webhook URL
+  // =============================================
+  var WEBHOOK_URL = 'https://krug.app.n8n.cloud/webhook/13719c2f-eed4-4c4f-b326-7a71a66111ba';
+
+  fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(function() { showSuccess(); })
+  .catch(function() {
+    // Show success anyway — webhook may not be configured yet
+    console.warn('Webhook not configured or unreachable. Payload:', payload);
+    showSuccess();
+  });
+}
+
+function showSuccess() {
+  document.getElementById('modal-form-view').style.display = 'none';
+  document.getElementById('modal-success-view').style.display = 'block';
+  document.getElementById('form-name').value = '';
+  document.getElementById('form-email').value = '';
+  document.getElementById('form-company').value = '';
+  document.getElementById('form-service').value = '';
+  document.getElementById('form-message').value = '';
+}
+
+// ---- BARCODE GENERATOR ----
+function genBarcode(el, height, count, scale) {
+  if (!el) return;
+  var widths = [1,2,3,1,2,1,3,2,1,1,2,3,1,2,1,1,3,2,1,2,3,1,1,2,1,3,2,1,2,1,1,3,1,2,1,2,3,1,1,2,1,3,2,1,1,2,3,1,2,1];
+  var gaps =   [1,2,1,1,2,1,2,1,1,3,1,2,1,1,2,1,1,2,1,1,2,3,1,1,2,1,1,2,1,1,3,1,2,1,1,2,1,1,2,3,1,1,2,1,1,2,1,1,3,1];
+  var s = scale || 1;
+  var html = '';
+  for (var i = 0; i < Math.min(count, widths.length); i++) {
+    var w = widths[i] * s;
+    var g = gaps[i % gaps.length] * s;
+    var h = height - Math.random() * (height * 0.12);
+    html += '<div class="bar" style="width:'+w+'px;height:'+h+'px"></div>';
+    html += '<div style="width:'+g+'px"></div>';
+  }
+  el.innerHTML = html;
+}
+
+genBarcode(document.getElementById('hero-barcode'), 90, 48, 1);
+
+document.querySelectorAll('.card-barcode').forEach(function(el) {
+  var c = parseInt(el.getAttribute('data-bars')) || 10;
+  var widths = [1,2,3,1,2,1,3,2,1,1,2,3];
+  var html = '';
+  for (var i = 0; i < c; i++) {
+    var w = widths[i % widths.length] * 0.8;
+    var h = 20 - Math.random() * 4;
+    html += '<div class="bar" style="width:'+w+'px;height:'+h+'px"></div>';
+    html += '<div style="width:1px"></div>';
+  }
+  el.innerHTML = html;
+});
+
+// ---- HEADER SCROLL ----
+var header = document.getElementById('header');
+window.addEventListener('scroll', function() {
+  header.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ---- SCROLL REVEAL ----
+function reveal() {
+  var els = document.querySelectorAll('.anim');
+  for (var i = 0; i < els.length; i++) {
+    var rect = els[i].getBoundingClientRect();
+    if (rect.top < window.innerHeight - 40) {
+      els[i].classList.add('visible');
+    }
+  }
+}
+document.body.classList.add('anim-ready');
+reveal();
+window.addEventListener('scroll', reveal);
+window.addEventListener('resize', reveal);
+setTimeout(reveal, 100);
+setTimeout(reveal, 400);
+setTimeout(reveal, 1000);
+</script>
+</body>
+</html>

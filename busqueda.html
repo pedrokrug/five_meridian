@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MBS Buscador — 5·MERIDIAN</title>
+<meta name="description" content="MBS Buscador — Buscador inteligente de propiedades de alquiler vacacional. Filtros avanzados y vista de mapa. Por 5·Meridian.">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f7fa; --white: #fff; --surface: #fff;
+    --border: #e2e8f0; --border-light: #f1f5f9;
+    --text: #1e293b; --text-sec: #475569; --text-muted: #94a3b8; --text-dim: #cbd5e1;
+    --brand: #0ea5e9; --brand-light: #e0f2fe; --brand-dark: #0284c7;
+    --green: #10b981; --green-light: #ecfdf5; --green-border: #a7f3d0;
+    --amber: #f59e0b; --amber-light: #fffbeb; --amber-border: #fde68a;
+    --red: #ef4444; --purple: #8b5cf6; --purple-light: #f5f3ff;
+    --radius: 12px; --radius-sm: 8px; --radius-xs: 5px;
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--text-dim);border-radius:3px}
+  .app{max-width:1000px;margin:0 auto;padding:20px 24px 60px}
+
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .header-left{display:flex;align-items:center;gap:14px}
+  .logo-mark{width:40px;height:40px;background:linear-gradient(135deg,var(--brand),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;box-shadow:0 2px 8px rgba(14,165,233,0.25)}
+  .header-title{font-size:20px;font-weight:800;letter-spacing:-0.4px}
+  .header-title span{font-weight:500;color:var(--text-muted)}
+  .header-right{display:flex;align-items:center;gap:8px}
+  .last-updated{font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace}
+  .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--radius-xs);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--white);color:var(--text-sec)}
+  .btn:hover{border-color:var(--brand);color:var(--brand)}
+  .mode-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+  .mode-badge.live{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+  .mode-badge.offline{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-border)}
+
+  .stats-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .stat-chip{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--white);border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;color:var(--text-sec)}
+  .stat-chip .n{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700}
+
+  .search-wrap{position:relative;margin-bottom:16px}
+  .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;pointer-events:none}
+  .search-input{width:100%;padding:12px 44px 12px 40px;font-family:inherit;font-size:15px;font-weight:500;border:2px solid var(--border);border-radius:var(--radius);background:var(--white);color:var(--text);outline:none;transition:border-color .2s}
+  .search-input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(14,165,233,0.1)}
+  .search-input::placeholder{color:var(--text-dim)}
+  .search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:var(--bg);border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted)}
+  .search-clear.vis{display:flex}
+  .search-shortcut{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;pointer-events:none;background:var(--bg);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+
+  .prop-list{display:flex;flex-direction:column;gap:6px}
+  .prop-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;align-items:center;gap:12px;transition:all .12s;cursor:pointer}
+  .prop-card:hover{border-color:var(--brand);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+  .prop-card.incomplete{border-left:3px solid var(--amber)}
+
+  .prop-thumb{width:48px;height:48px;border-radius:8px;background:var(--bg);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .prop-thumb img{width:100%;height:100%;object-fit:cover}
+
+  .prop-body{flex:1;min-width:0}
+  .prop-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prop-sub{font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;margin-top:1px}
+  .prop-meta{font-size:11px;color:var(--text-sec);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+
+  .prop-actions{display:flex;gap:6px;flex-shrink:0}
+  .act-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--radius-xs);font-family:inherit;font-size:11px;font-weight:600;text-decoration:none;transition:all .12s;border:none;cursor:pointer;white-space:nowrap}
+  .act-btn.open{background:var(--brand-light);color:var(--brand-dark)}
+  .act-btn.open:hover{background:var(--brand);color:#fff}
+  .act-btn.copy{background:var(--bg);color:var(--text-sec);border:1px solid var(--border)}
+  .act-btn.copy:hover{background:var(--green-light);color:var(--green);border-color:var(--green-border)}
+  .act-btn.copied{background:var(--green-light)!important;color:var(--green)!important;border-color:var(--green-border)!important}
+  .act-btn.warn{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-border);cursor:default;font-size:10px}
+
+  .state-box{text-align:center;padding:50px 20px}
+  .state-box .icon{font-size:36px;margin-bottom:10px}
+  .state-box .msg{font-size:14px;color:var(--text-sec);font-weight:500}
+  .state-box .sub{font-size:12px;color:var(--text-muted);margin-top:5px}
+  .spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--text);color:#fff;padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:999;pointer-events:none}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+  mark{background:var(--brand-light);color:var(--brand-dark);padding:0 2px;border-radius:2px}
+
+  @media(max-width:640px){
+    .app{padding:14px}
+    .prop-card{flex-direction:column;align-items:stretch;gap:8px}
+    .prop-actions{justify-content:flex-end}
+    .prop-thumb{display:none}
+    .header{flex-direction:column;align-items:flex-start}
+    .search-shortcut{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo-mark">🔗</div>
+      <div class="header-title">MBS <span>· Buscador de Propiedades</span></div>
+    </div>
+    <div class="header-right">
+      <span class="last-updated" id="ts"></span>
+      <span class="mode-badge" id="modeBadge"></span>
+      <button class="btn" onclick="fetchData()">↻</button>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="stats" style="display:none">
+    <div class="stat-chip"><span class="n" id="nTotal">0</span> propiedades</div>
+    <div class="stat-chip" style="color:var(--green)"><span class="n" style="color:var(--green)" id="nLinked">0</span> con enlace</div>
+    <div class="stat-chip" id="warnChip" style="display:none;color:var(--amber)"><span class="n" style="color:var(--amber)" id="nMissing">0</span> sin enlace</div>
+  </div>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="q" placeholder="Buscar por nombre, referencia interna, dirección..." oninput="doSearch()" />
+    <button class="search-clear" id="qX" onclick="clearQ()">✕</button>
+    <span class="search-shortcut" id="qHint">⌘K</span>
+  </div>
+
+  <div id="list">
+    <div class="state-box"><div class="spinner"></div><div class="msg">Cargando propiedades...</div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const WEBHOOK = 'https://krug.app.n8n.cloud/webhook/property-links';
+const BASE_URL = 'https://marbellabanussuites.icnea.net';
+
+// ═══════════════════════════════════════════════
+// HARDCODED FALLBACK — complete property registry
+// Used when n8n webhook is unavailable
+// ═══════════════════════════════════════════════
+const OFFLINE_DATA = [
+  {registry:"1058",ref:"00-MBS",name:"MBS"},
+  {registry:"1002",ref:"01-Iris-Tropical-Garden",name:"01 Banús, modern, bright, 2 bedroom Apart., pool"},
+  {registry:"1003",ref:"02-Ceibo-Centro-Plaza",name:"02 Banús Nueva Andalucia, modern, bright, 2Bdrm"},
+  {registry:"1004",ref:"03-Bird-Of-Paradise",name:"03 Banús, acceso directo playa, 35.000m2 de jardín"},
+  {registry:"1009",ref:"08-Lis-Yvis-Residences-1E",name:"08 Banús N.Andalucia, 1Bdm, pool, big outdoor terrace"},
+  {registry:"1010",ref:"09-Dama-De-Noche-B14-1B-E",name:"09 Banús, lovely apartment, 2bdm, terrace, 3pools"},
+  {registry:"1012",ref:"11-Endless-Sunset-Banus",name:"11 Banús, Los Naranjos, Fantastic Roof Top!"},
+  {registry:"1015",ref:"14-J-del-Principe-B2-3A",name:"14 Golden Mile Jardines del Principe 2 Apartment"},
+  {registry:"1016",ref:"15-Edif-Doña-Inés-2A",name:"15 Marbella Centre, lovely apartment, 2bdm."},
+  {registry:"1017",ref:"16-Daisy-Playas-del-Duque",name:"16 Banús, Playas del Duque, Beachfront Residential!"},
+  {registry:"1018",ref:"17-Villa-Marina-E-1-24",name:"17 Villa Marina Banús Beach Apartment"},
+  {registry:"1020",ref:"19-Jardines-Principe-B42B",name:"19 Jardines del Principe 4 Golden Mile Apartment"},
+  {registry:"1022",ref:"21-Las-Mimosas-1-2D",name:"21 Banús Las Mimosas Suite Apartment"},
+  {registry:"1023",ref:"22-Marbella-Soriano-14-3C",name:"22 Marbella Centre, bright apartment, 2bdm."},
+  {registry:"1024",ref:"23-Marbella-Hispasol-7D",name:"23 Marbella Centre Sea Views Suite Apartment"},
+  {registry:"",ref:"26-Marbella-Soriano-56-8C",name:"26 Marbella Centre Soriano 56 Suite Apartment"},
+  {registry:"1029",ref:"28-Marbella-EdenRoc-I-12E",name:"28 Marbella Beach Front Suite Apartment"},
+  {registry:"1030",ref:"29-Marina-Banus-B1-6D",name:"29 Marbella Marina Banus Deluxe Apartment SeaViews"},
+  {registry:"1033",ref:"32-Playa-Rocio-44-2da",name:"32 Banús Playa Rocio Sea Views Apartment"},
+  {registry:"1034",ref:"33-Playa-Rocio-55-Bajo",name:"33 Banús Playa Rocio Beachfront Complex"},
+  {registry:"1035",ref:"34-Playa-Rocio-58-2da",name:"34 Banús Playa Rocio Beachside Complex"},
+  {registry:"1037",ref:"36-Playa-Rocio-6-Bajo",name:"36 Banús Playa Rocio Beach Access Complex"},
+  {registry:"1038",ref:"37-Los-Arcos-La-Quinta628",name:"37 La Quinta Cosy Flat with Fantastic Terrace"},
+  {registry:"1039",ref:"38-Puerto-Banús-K-211",name:"38 Puerto Banus Marina Harbour Seafront Apartment"},
+  {registry:"1043",ref:"42-Playas-del-Duque-141",name:"42 Banús Playas del Duque Beachside Residential"},
+  {registry:"1044",ref:"43-Marbella-Marysol-6D",name:"43 Marbella Marysol Beachfront Apartment I"},
+  {registry:"1045",ref:"44-Marbella-Marysol-6C",name:"44 Marbella Marysol Seaside Flat"},
+  {registry:"1048",ref:"47-Terrazas-de-Banús-1313",name:"47 Terrazas de Banús Flat, in the heart of Banús"},
+  {registry:"1053",ref:"51-Malambo-101",name:"51 Nueva Andalucia Banus Sea Views Flat"},
+  {registry:"1054",ref:"52-Playas-del-Duque-213",name:"52 Banus Playas del Duque Beachside Complex"},
+  {registry:"1056",ref:"54-Puerto-Banús-4-8",name:"54 Brand New and Exclusive Banus PortSeafront Flat"},
+  {registry:"1057",ref:"55-Puerto-Benabola-143B",name:"55 Banus Harbour Seafront Apartment"},
+  {registry:"1059",ref:"56-Jardines-Principe-B132",name:"56 Golden Mile Jardines del Principe Charming"},
+  {registry:"1060",ref:"57-Playas-delDuque-Malaga",name:"57 Banús Playas del Duque CasaMálaga MountainViews"},
+  {registry:"1061",ref:"58-Señorío-de-Aloha",name:"58 Banús Senorio de Aloha Mountain Sea Views"},
+  {registry:"1062",ref:"59-Alcazaba-de-Rio-Verde",name:"59 Banús Rio Verde Beachside"},
+  {registry:"1064",ref:"60-Jardines-Tropicales",name:"60 Banus, modern, bright, 1 bedroom Apart., pool"},
+  {registry:"1065",ref:"62-Aldea-Blanca",name:"62 Banus Aldea Blanca Two Terraces Views"},
+  {registry:"1066",ref:"63-Playa-Rocio-1-22",name:"63 Banus Playa Rocio Beach Access Urbanization"},
+  {registry:"1067",ref:"64-Dama-De-Noche-B1-1",name:"64 Banús, lovely apartment, 1bdm, terrace, 3pools"},
+  {registry:"1068",ref:"65-Playa-Rocio-1-11",name:"65 Banús Playa Rocio Beachfront Complex"},
+  {registry:"1069",ref:"66-Terrazas-de-Banus-232",name:"66 Terrazas de Banús Apt, in the heart of Banus"},
+  {registry:"1070",ref:"67-Playas-del-Duque-3-10",name:"67 Banus Playas del Duque Seaside Complex"},
+  {registry:"1071",ref:"68-Playas-del-Duque-1-10",name:"68 Banus Playas del Duque Seaside Residential"},
+  {registry:"1072",ref:"69-Dama-De-Noche-B11-1C",name:"69 Banús, Brand New, 2bdm 2bht, terrace, 3pools"},
+  {registry:"1073",ref:"70-Playa-Rocio-3-12",name:"70 Banus Playa Rocio Beachfront Residential"},
+  {registry:"1074",ref:"71-Medina-Garden-412",name:"71 Banús Medina Garden, modern, 1bdm, terrace, pool"},
+  {registry:"1075",ref:"72-Medina-Garden-422",name:"72 Banús Medina Garden, modern, 1bedroom, 2bth"},
+  {registry:"1076",ref:"73-Playa-Rocio-Bajo-9",name:"73 Banus Playa Rocio Seaside Complex"},
+];
+
+// ═══════════════════════════════════════════════
+let allProps = [];
+let isLive = false;
+
+const esc = s => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
+
+function slugify(t) {
+  return t.toLowerCase().trim()
+    .replace(/[àáâãäå]/g,'a').replace(/[èéêë]/g,'e').replace(/[ìíîï]/g,'i')
+    .replace(/[òóôõö]/g,'o').replace(/[ùúûü]/g,'u').replace(/[ñ]/g,'n').replace(/[ç]/g,'c')
+    .replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+}
+
+function toast(m) {
+  const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+function offlineProps() {
+  return OFFLINE_DATA.map(p => {
+    // Strip leading number + space from name to create slug
+    const nameForSlug = p.name.replace(/^\d+\s+/,'');
+    const slug = slugify(nameForSlug);
+    const hasUrl = !!(slug && p.registry);
+    return {
+      name: p.name,
+      internal_name: p.ref,
+      registry_number: p.registry,
+      slug: slug,
+      booking_url: hasUrl ? `${BASE_URL}/en/${slug}-h${p.registry}` : '',
+      url_status: hasUrl ? 'complete' : 'missing_registry',
+      thumbnail: '',
+      capacity: 0, rooms: '', city: '', property_type: '',
+      address: '', property_id: '', headline_en: ''
+    };
+  });
+}
+
+async function fetchData() {
+  const el = document.getElementById('list');
+  el.innerHTML = '<div class="state-box"><div class="spinner"></div><div class="msg">Cargando propiedades...</div></div>';
+
+  try {
+    const r = await fetch(WEBHOOK, {signal: AbortSignal.timeout(12000)});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    allProps = data.properties || [];
+    isLive = true;
+  } catch(e) {
+    // Fallback to offline data
+    allProps = offlineProps();
+    isLive = false;
+  }
+
+  const badge = document.getElementById('modeBadge');
+  badge.textContent = isLive ? 'LIVE' : 'OFFLINE';
+  badge.className = 'mode-badge ' + (isLive ? 'live' : 'offline');
+
+  document.getElementById('ts').textContent = new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('stats').style.display = 'flex';
+  document.getElementById('nTotal').textContent = allProps.length;
+  const linked = allProps.filter(p=>p.url_status==='complete').length;
+  document.getElementById('nLinked').textContent = linked;
+  const miss = allProps.length - linked;
+  if(miss>0){document.getElementById('nMissing').textContent=miss;document.getElementById('warnChip').style.display='flex';}
+  else{document.getElementById('warnChip').style.display='none';}
+
+  render(allProps);
+}
+
+function doSearch() {
+  const q = document.getElementById('q').value.toLowerCase().trim();
+  const cl = document.getElementById('qX');
+  const hint = document.getElementById('qHint');
+  cl.classList.toggle('vis', q.length>0);
+  if(hint) hint.style.display = q.length>0 ? 'none' : '';
+  if(!q){render(allProps);return;}
+  render(allProps.filter(p=>[p.name,p.internal_name,p.address,p.city,p.registry_number,p.headline_en||'',p.property_id||''].join(' ').toLowerCase().includes(q)), q);
+}
+function clearQ(){document.getElementById('q').value='';document.getElementById('qX').classList.remove('vis');const h=document.getElementById('qHint');if(h)h.style.display='';render(allProps);document.getElementById('q').focus();}
+
+function hl(text, q) {
+  if(!q||!text) return esc(text||'');
+  const e=esc(text);
+  return e.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'),'<mark>$1</mark>');
+}
+
+function render(props, q) {
+  const el = document.getElementById('list');
+  if(!props.length){el.innerHTML=`<div class="state-box"><div class="icon">🏠</div><div class="msg">${q?'Sin resultados':'Sin propiedades'}</div></div>`;return;}
+
+  let h='';
+  props.forEach(p => {
+    const ok = p.url_status==='complete';
+    const thumb = p.thumbnail ? `<img src="${esc(p.thumbnail)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='🏠'">` : '🏠';
+
+    const meta = [];
+    if(p.city) meta.push('📍 '+esc(p.city));
+    if(p.rooms && p.rooms!=='0') meta.push('🛏 '+p.rooms);
+    if(p.capacity) meta.push('👥 '+p.capacity);
+    if(p.registry_number) meta.push('Reg: '+p.registry_number);
+
+    let actions;
+    if(ok){
+      actions = `<a href="${esc(p.booking_url)}" target="_blank" rel="noopener" class="act-btn open" onclick="event.stopPropagation()" title="Abrir página de reserva">🔗 Abrir</a>`
+        + `<button class="act-btn copy" onclick="event.stopPropagation();copyUrl(this,'${esc(p.booking_url)}')" title="Copiar enlace">📋 Copiar</button>`;
+    } else {
+      actions = `<span class="act-btn warn">⚠️ Sin registro</span>`;
+    }
+
+    h += `<div class="prop-card ${ok?'':'incomplete'}" onclick="${ok?`window.open('${esc(p.booking_url)}','_blank')`:''}">
+      <div class="prop-thumb">${thumb}</div>
+      <div class="prop-body">
+        <div class="prop-name">${hl(p.name,q)}</div>
+        <div class="prop-sub">${hl(p.internal_name,q)}${p.property_id?' · ID: '+esc(p.property_id):''}</div>
+        ${meta.length?`<div class="prop-meta">${meta.map(m=>'<span>'+m+'</span>').join('')}</div>`:''}
+      </div>
+      <div class="prop-actions">${actions}</div>
+    </div>`;
+  });
+  el.innerHTML = `<div class="prop-list">${h}</div>`;
+}
+
+function copyUrl(btn, url){
+  navigator.clipboard.writeText(url).then(()=>{
+    btn.classList.add('copied');btn.innerHTML='✓ Copiado';toast('Enlace copiado');
+    setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML='📋 Copiar';},1500);
+  });
+}
+
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.getElementById('q').focus();}
+  if(e.key==='Escape')document.getElementById('q').blur();
+});
+
+fetchData();
+</script>
+</body>
+</html>
