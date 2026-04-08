@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" >
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hypnos Industries — Portal del Cliente</title>
 <meta name="description" content="Portal de cliente Hypnos Industries — Vista de eventos, equipo y facturación.">
@@ -53,6 +53,8 @@
     .modal-title{font-size:12px !important;letter-spacing:2px !important}
     .dr-row{flex-wrap:wrap;gap:4px}
     .dr-row span:last-child{font-size:11px !important;text-align:right}
+    .login-outer{padding:32px 16px !important;gap:32px !important;min-height:100vh}
+    .login-card{width:100% !important;max-width:400px;padding:36px 24px !important}
   }
 </style>
 </head>
@@ -76,10 +78,11 @@ const{useState,useEffect,useMemo,useCallback}=React;
 //   filtering server-side.  See hypnos-portal-spec.md §3 and §5.2.
 //
 // AUTH:
-//   For the PoC we reuse the existing hypnos-auth workflow with the shared
-//   `5m.Alpa / 5m1234*` credentials, exactly like the internal dashboard.
-//   We store the token in localStorage under hypnos.portal.auth (separate
-//   namespace from the internal dashboard so the two do not collide).
+//   Uses the existing hypnos-auth n8n workflow, same as the internal
+//   dashboard. The user enters credentials on a dedicated LoginScreen
+//   (no more hardcoded fallback) and the token is stored in localStorage
+//   under hypnos.portal.auth (separate namespace from the internal
+//   dashboard so the two do not collide).
 //
 // REDACTION:
 //   Internal-only fields (unit_price, costs, cost_rate, purchase_price,
@@ -91,9 +94,6 @@ const{useState,useEffect,useMemo,useCallback}=React;
 
 const API="https://krug.app.n8n.cloud/webhook/hypnos-api-proxy";
 const AUTH_API="https://krug.app.n8n.cloud/webhook/hypnos-auth";
-// PoC credentials. PRODUCTION MODEL: replace with per-venue secret exchange.
-const PORTAL_LOGIN="5m.Alpa";
-const PORTAL_PASS="5m1234*";
 const CONTACT_EMAIL="hola@hypnos-industries.com"; // placeholder
 
 const eur=n=>new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(n||0);
@@ -105,12 +105,13 @@ const auth={
   KEY:"hypnos.portal.auth",
   get:function(){try{var r=JSON.parse(localStorage.getItem(this.KEY));if(!r||!r.token||!r.expiresAt||Date.now()>r.expiresAt)return null;return r}catch(e){return null}},
   token:function(){var r=this.get();return r?r.token:null},
-  login:async function(){
+  user:function(){var r=this.get();return r?r.user:null},
+  login:async function(login,password){
     try{
-      var r=await fetch(AUTH_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({login:PORTAL_LOGIN,password:PORTAL_PASS})});
+      var r=await fetch(AUTH_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({login:login,password:password})});
       var j=await r.json();
       if(j&&j.ok&&j.token){localStorage.setItem(this.KEY,JSON.stringify({token:j.token,user:j.user,expiresAt:j.expiresAt}));return{ok:true}}
-      return{ok:false,error:j&&j.error||"AUTH_DENIED"};
+      return{ok:false,error:j&&j.error||"AUTH_DENIED"}
     }catch(e){return{ok:false,error:"NETWORK_ERROR"}}
   },
   logout:function(){localStorage.removeItem(this.KEY);cache.clear()}
@@ -125,27 +126,15 @@ const cache={
 };
 
 // ═══════ API ═══════
-// Auto-acquires a portal token on first call.
-const ensureToken=async()=>{
-  if(auth.token())return;
-  var r=await auth.login();
-  if(!r.ok)throw new Error("PORTAL_AUTH_FAILED");
-};
+// Single request to the proxy. Auto-injects token. On no token or 401,
+// clears auth and dispatches hypnos-portal-auth-required so the App
+// wrapper swaps in the LoginScreen.
 const apiGet=async(platform,endpoint)=>{
-  await ensureToken();
   var t=auth.token();
+  if(!t){auth.logout();window.dispatchEvent(new CustomEvent("hypnos-portal-auth-required"));throw new Error("NO_TOKEN")}
   var r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({platform:platform,method:"GET",endpoint:endpoint,token:t})});
   var j=await r.json();
-  if(j&&j.error==="AUTH_REQUIRED"){
-    // Token expired mid-session — clear and retry once.
-    auth.logout();
-    await ensureToken();
-    var t2=auth.token();
-    var r2=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({platform:platform,method:"GET",endpoint:endpoint,token:t2})});
-    var j2=await r2.json();
-    if(j2&&j2.success===false)throw new Error(j2.error||"API_ERROR");
-    return j2.data;
-  }
+  if(j&&j.error==="AUTH_REQUIRED"){auth.logout();window.dispatchEvent(new CustomEvent("hypnos-portal-auth-required"));throw new Error("AUTH_REQUIRED")}
   if(j&&j.success===false)throw new Error(j.error||"API_ERROR");
   return j.data;
 };
@@ -371,7 +360,42 @@ function projectStatus(p){
 function isOverdue(inv){return!inv.is_paid&&inv.expiration&&new Date(inv.expiration).getTime()<Date.now()}
 
 // ═══════ PORTAL APP ═══════
-function Portal(){
+// ═══════ LOGIN ═══════
+function LoginScreen({onLogin}){
+  const[login,setLogin]=useState("");const[pass,setPass]=useState("");const[error,setError]=useState("");const[busy,setBusy]=useState(false);
+  const go=async function(e){
+    e.preventDefault();
+    if(busy)return;
+    setBusy(true);setError("");
+    var r=await auth.login(login,pass);
+    setBusy(false);
+    if(r.ok)onLogin(true);
+    else setError(r.error==="NETWORK_ERROR"?"ERROR DE CONEXIÓN":"ACCESO DENEGADO");
+  };
+  const iS={width:"100%",padding:"12px 14px",marginBottom:20,background:"var(--paper)",border:"1px solid var(--border)",color:"var(--black)",fontSize:13,fontFamily:"var(--mono)",letterSpacing:1};
+  const lS={fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--mid)",display:"block",marginBottom:6};
+  return <div className="login-outer" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--paper)",flexDirection:"column",gap:48,padding:"40px 20px"}}>
+    <div style={{textAlign:"center"}}>
+      <div style={{fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.45em",color:"var(--black)",fontWeight:500,textTransform:"uppercase",marginBottom:40}}>HYPNOS</div>
+      <Barcode count={20} height={24}/>
+    </div>
+    <div className="login-card" style={{width:400,padding:"48px 40px",border:"1px solid var(--border)",background:"#faf8f3"}}>
+      <Ref code="HYP-PORTAL-001"/>
+      <div style={{fontFamily:"var(--mono)",fontSize:16,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"var(--black)",marginTop:8,marginBottom:32}}>PORTAL DEL CLIENTE</div>
+      <form onSubmit={go}>
+        <label style={lS}>IDENTIFICADOR</label>
+        <input type="text" value={login} onChange={function(e){setLogin(e.target.value);setError("")}} style={iS}/>
+        <label style={lS}>CLAVE</label>
+        <input type="password" value={pass} onChange={function(e){setPass(e.target.value);setError("")}} style={iS}/>
+        {error&&<div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:2,color:"var(--danger)",marginBottom:16}}>{error}</div>}
+        <Btn style={{width:"100%",padding:14,opacity:busy?0.5:1}}>{busy?"VERIFICANDO...":"ACCEDER"}</Btn>
+      </form>
+    </div>
+    <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--dim)",textTransform:"uppercase"}}>HYPNOS INDUSTRIES · VALENCIA</div>
+  </div>;
+}
+
+function Portal({onLogout}){
   const[contacts,setContacts]=useState(null);
   const[projects,setProjects]=useState(null);
   const[invoices,setInvoices]=useState(null);
@@ -475,6 +499,7 @@ function Portal(){
       <div style={{display:"flex",alignItems:"center",gap:14}}>
         <span style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--dim)",textTransform:"uppercase"}}>VALENCIA</span>
         <Btn onClick={function(){window.location.href="mailto:"+CONTACT_EMAIL+"?subject=Consulta%20portal%20cliente"}}>CONTACTAR</Btn>
+        <Btn onClick={onLogout}>SALIR</Btn>
       </div>
     </header>
 
@@ -600,7 +625,19 @@ function Portal(){
   </div>;
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<Portal/>);
+// ═══════ APP ═══════
+function App(){
+  const[authed,setAuthed]=useState(function(){return!!auth.token()});
+  useEffect(function(){
+    var h=function(){setAuthed(false)};
+    window.addEventListener("hypnos-portal-auth-required",h);
+    return function(){window.removeEventListener("hypnos-portal-auth-required",h)};
+  },[]);
+  if(!authed)return <LoginScreen onLogin={setAuthed}/>;
+  return <Portal onLogout={function(){auth.logout();setAuthed(false)}}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
