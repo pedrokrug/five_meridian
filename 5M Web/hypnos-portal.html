@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hypnos Industries — Portal del Cliente</title>
+<meta name="description" content="Portal de cliente Hypnos Industries — Vista de eventos, equipo y facturación.">
+<meta name="theme-color" content="#f5f2ec">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+  :root { --black:#0a0a0a; --white:#f5f2ec; --paper:#f5f2ec; --accent:#2c4a7c; --accent-light:#3a5d96; --mid:#888; --dim:#bbb; --border:#ccc; --danger:#b44; --ok:#4a7c4a; --mono:'IBM Plex Mono',monospace; --sans:'DM Sans',sans-serif; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--paper);color:var(--black);font-family:var(--sans)}
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--border)}
+  input:focus,select:focus{outline:1px solid var(--black)}
+  code{font-family:var(--mono);font-size:11px;background:#edeae3;padding:1px 4px}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+  @keyframes modalIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .clickrow:hover{background:#edeae3;cursor:pointer}
+  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .scroll-x::-webkit-scrollbar{height:4px}
+  @media (max-width: 900px){
+    .hdr{padding:0 20px !important}
+    .main{padding:28px 18px !important}
+    .footer{padding:24px 20px !important}
+    .mrow>div{flex:1 1 50% !important}
+    .modal-wrap{padding:24px 14px !important}
+    .modal-header{padding:18px 20px !important}
+    .modal-body{padding:22px 20px !important}
+    .ev-grid{grid-template-columns:1fr !important}
+    .gate-row{flex-direction:column !important;align-items:flex-start !important;gap:12px !important}
+  }
+  @media (max-width: 640px){
+    .hdr{padding:0 14px !important;height:52px !important}
+    .hdr-sub{display:none !important}
+    .main{padding:22px 14px !important}
+    .footer{padding:20px 14px !important;flex-direction:column !important;gap:12px}
+    .mrow{flex-wrap:wrap !important}
+    .mrow>div{flex:0 0 50% !important;min-width:0 !important;padding:20px 16px !important;border-bottom:1px solid var(--border)}
+    .mrow>div:nth-child(2n){border-right:none !important}
+    .mrow>div:nth-last-child(-n+2):nth-child(odd),
+    .mrow>div:last-child{border-bottom:none}
+    .mrow .mval{font-size:20px !important}
+    .modal-wrap{padding:14px 8px !important}
+    .modal-header{padding:16px !important}
+    .modal-body{padding:18px 16px !important}
+    .modal-title{font-size:12px !important;letter-spacing:2px !important}
+    .dr-row{flex-wrap:wrap;gap:4px}
+    .dr-row span:last-child{font-size:11px !important;text-align:right}
+    .login-outer{padding:32px 16px !important;gap:32px !important;min-height:100vh}
+    .login-card{width:100% !important;max-width:400px;padding:36px 24px !important}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useMemo,useCallback}=React;
+
+// ───────────────────────────────────────────────────────────────────────────
+// HYPNOS CLIENT PORTAL — PoC
+// ───────────────────────────────────────────────────────────────────────────
+// PoC NOTES — read before extending:
+//
+// GATE MODEL:
+//   In this PoC the "gate" is a dropdown at the top of the page that lets
+//   the operator pick which client to view. In production this is replaced
+//   by a per-venue secret URL of the form:
+//        https://portal.hypnos-industries.com/?v=<32-byte-base64url-secret>
+//   The secret is exchanged via a future `hypnos-portal-auth` n8n workflow
+//   for a token that ENCODES the contact_id, so the proxy can hard-enforce
+//   filtering server-side.  See hypnos-portal-spec.md §3 and §5.2.
+//
+// AUTH:
+//   Uses the existing hypnos-auth n8n workflow, same as the internal
+//   dashboard. The user enters credentials on a dedicated LoginScreen
+//   (no more hardcoded fallback) and the token is stored in localStorage
+//   under hypnos.portal.auth (separate namespace from the internal
+//   dashboard so the two do not collide).
+//
+// REDACTION:
+//   Internal-only fields (unit_price, costs, cost_rate, purchase_price,
+//   ledger, project_*_price subcategories, etc.) are NEVER read in this
+//   file. Equipment items show name + qty only. Crew members show name +
+//   folder badge only. Projects show top-line totals only. See §4.2 of the
+//   spec for the full hidden-field list.
+// ───────────────────────────────────────────────────────────────────────────
+
+const API="https://krug.app.n8n.cloud/webhook/hypnos-api-proxy";
+const AUTH_API="https://krug.app.n8n.cloud/webhook/hypnos-auth";
+const CONTACT_EMAIL="hola@hypnos-industries.com"; // placeholder
+
+const eur=n=>new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(n||0);
+const fd=d=>{if(!d)return"\u2014";return new Date(d).toLocaleDateString("es-ES",{day:"2-digit",month:"short",year:"numeric"})};
+const fdShort=d=>{if(!d)return"\u2014";return new Date(d).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})};
+
+// ═══════ AUTH (portal-namespaced) ═══════
+const auth={
+  KEY:"hypnos.portal.auth",
+  get:function(){try{var r=JSON.parse(localStorage.getItem(this.KEY));if(!r||!r.token||!r.expiresAt||Date.now()>r.expiresAt)return null;return r}catch(e){return null}},
+  token:function(){var r=this.get();return r?r.token:null},
+  user:function(){var r=this.get();return r?r.user:null},
+  login:async function(login,password){
+    try{
+      var r=await fetch(AUTH_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({login:login,password:password})});
+      var j=await r.json();
+      if(j&&j.ok&&j.token){localStorage.setItem(this.KEY,JSON.stringify({token:j.token,user:j.user,expiresAt:j.expiresAt}));return{ok:true}}
+      return{ok:false,error:j&&j.error||"AUTH_DENIED"}
+    }catch(e){return{ok:false,error:"NETWORK_ERROR"}}
+  },
+  logout:function(){localStorage.removeItem(this.KEY);cache.clear()}
+};
+
+// ═══════ CACHE (portal-namespaced) ═══════
+const cache={
+  PREFIX:"hypnos.portal.cache.",
+  get:function(key){try{var r=JSON.parse(localStorage.getItem(this.PREFIX+key));if(!r)return null;return r}catch(e){return null}},
+  set:function(key,data){try{localStorage.setItem(this.PREFIX+key,JSON.stringify({data:data,ts:Date.now()}))}catch(e){}},
+  clear:function(){try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(this.PREFIX)===0)ks.push(k)}ks.forEach(function(k){localStorage.removeItem(k)})}catch(e){}}
+};
+
+// ═══════ API ═══════
+// Single request to the proxy. Auto-injects token. On no token or 401,
+// clears auth and dispatches hypnos-portal-auth-required so the App
+// wrapper swaps in the LoginScreen.
+const apiGet=async(platform,endpoint)=>{
+  var t=auth.token();
+  if(!t){auth.logout();window.dispatchEvent(new CustomEvent("hypnos-portal-auth-required"));throw new Error("NO_TOKEN")}
+  var r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({platform:platform,method:"GET",endpoint:endpoint,token:t})});
+  var j=await r.json();
+  if(j&&j.error==="AUTH_REQUIRED"){auth.logout();window.dispatchEvent(new CustomEvent("hypnos-portal-auth-required"));throw new Error("AUTH_REQUIRED")}
+  if(j&&j.success===false)throw new Error(j.error||"API_ERROR");
+  return j.data;
+};
+const apiGetAll=async(platform,endpoint)=>{
+  var first=await apiGet(platform,endpoint);
+  if(!first||!first.data)return first;
+  var all=Array.isArray(first.data)?first.data.slice():[];
+  var next=first.next_page_url;
+  var pages=1,MAX=10;
+  while(next&&pages<MAX){
+    var path=next.replace(/^https?:\/\/api\.rentman\.net/,"");
+    var nx=await apiGet(platform,path);
+    if(nx&&Array.isArray(nx.data))all=all.concat(nx.data);
+    next=nx&&nx.next_page_url;
+    pages++;
+  }
+  return{data:all,itemCount:all.length,pages:pages};
+};
+
+// ═══════ PRIMITIVES ═══════
+function Barcode({count=12,height=16}){
+  const w=[1,2,1,3,1,2,4,1,2,1,3,2,1,4,1,2];
+  return <div style={{display:"flex",alignItems:"flex-end",gap:2,opacity:.25}}>
+    {Array.from({length:count},(_,i)=><div key={i} style={{width:w[i%16],height:height-Math.random()*height*.4,background:"var(--black)"}}/>)}
+  </div>;
+}
+function Ref({code}){return <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:400,letterSpacing:3,textTransform:"uppercase",color:"var(--mid)"}}>{code}</span>}
+function MetricCell({label,value,sub,highlight=false}){
+  return <div style={{padding:"28px 24px",borderRight:"1px solid var(--border)",flex:1,minWidth:160}}>
+    <div className="mlabel" style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--mid)",marginBottom:8}}>{label}</div>
+    <div className="mval" style={{fontFamily:"var(--mono)",fontSize:26,fontWeight:700,color:highlight?"var(--accent)":"var(--black)",letterSpacing:-1}}>{value}</div>
+    {sub&&<div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--dim)",marginTop:6,letterSpacing:1}}>{sub}</div>}
+  </div>;
+}
+function Btn({children,onClick,style={}}){
+  const[h,setH]=useState(false);
+  return <button onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+    style={{border:"1px solid var(--black)",background:h?"var(--black)":"transparent",color:h?"var(--paper)":"var(--black)",
+            fontFamily:"var(--mono)",fontSize:9,fontWeight:600,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",padding:"8px 16px",transition:"all 0.2s",...style}}>{children}</button>;
+}
+function DR({label,value,accent=false}){
+  return <div className="dr-row" style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
+    <span style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--mid)"}}>{label}</span>
+    <span style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:accent?600:500,color:accent?"var(--accent)":"var(--black)",letterSpacing:accent?1:0}}>{value}</span>
+  </div>;
+}
+function StatusPill({status}){
+  var col=status==="Active"?"var(--ok)":status==="Upcoming"?"var(--accent)":"var(--mid)";
+  var label=status==="Active"?"EN CURSO":status==="Upcoming"?"PRÓXIMO":"PASADO";
+  return <span style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:2,padding:"3px 8px",border:"1px solid "+col,color:col,textTransform:"uppercase",whiteSpace:"nowrap"}}>{label}</span>;
+}
+function PayPill({paid,overdue}){
+  var col=paid?"var(--ok)":overdue?"var(--danger)":"var(--accent)";
+  var label=paid?"PAGADA":overdue?"VENCIDA":"PENDIENTE";
+  return <span style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:2,padding:"3px 8px",border:"1px solid "+col,color:col,textTransform:"uppercase",whiteSpace:"nowrap"}}>{label}</span>;
+}
+
+// ═══════ MODAL ═══════
+function Modal({open,onClose,title,refCode,children}){
+  if(!open)return null;
+  return <div className="modal-wrap" onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(10,10,10,0.55)",zIndex:200,display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"60px 20px",overflowY:"auto"}}>
+    <div className="modal-box" onClick={function(e){e.stopPropagation()}} style={{width:"100%",maxWidth:860,background:"var(--paper)",border:"1px solid var(--border)",animation:"modalIn 0.25s ease",maxHeight:"calc(100vh - 120px)",overflowY:"auto"}}>
+      <div className="modal-header" style={{padding:"24px 32px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:"var(--paper)",zIndex:1}}>
+        <div><Ref code={refCode}/><div className="modal-title" style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:700,letterSpacing:3,textTransform:"uppercase",marginTop:4}}>{title}</div></div>
+        <button onClick={onClose} style={{fontFamily:"var(--mono)",fontSize:18,background:"none",border:"none",cursor:"pointer",color:"var(--mid)",padding:"4px 8px"}}>{"\u2715"}</button>
+      </div>
+      <div className="modal-body" style={{padding:"28px 32px"}}>{children}</div>
+    </div>
+  </div>;
+}
+
+// ═══════ PROJECT MODAL (REDACTED — client-safe) ═══════
+function PrjModal({proj,wMap,onClose}){
+  const[detail,setDetail]=useState(null);
+  const[eqGroups,setEqGroups]=useState(null);
+  const[eqItems,setEqItems]=useState(null);
+  const[crewPlan,setCrewPlan]=useState(null);
+  const[loading,setLoading]=useState(true);
+
+  useEffect(function(){
+    if(!proj)return;
+    setLoading(true);setDetail(null);setEqGroups(null);setEqItems(null);setCrewPlan(null);
+    var pid=proj.id;
+    Promise.allSettled([
+      apiGet("rentman","/projects/"+pid),
+      apiGet("rentman","/projects/"+pid+"/projectequipmentgroup"),
+      apiGet("rentman","/projects/"+pid+"/projectequipment?limit=300"),
+      apiGet("rentman","/projects/"+pid+"/projectcrew?limit=300")
+    ]).then(function(res){
+      var v=function(i){return res[i].status==="fulfilled"?res[i].value:null};
+      var r0=v(0),r1=v(1),r2=v(2),r3=v(3);
+      setDetail(r0&&r0.data?r0.data:(r0||null));
+      setEqGroups(r1&&r1.data?r1.data:(Array.isArray(r1)?r1:[]));
+      setEqItems(r2&&r2.data?r2.data:(Array.isArray(r2)?r2:[]));
+      setCrewPlan(r3&&r3.data?r3.data:(Array.isArray(r3)?r3:[]));
+      setLoading(false);
+    });
+  },[proj]);
+
+  // SAFE EQUIPMENT PROJECTION — name + qty only.
+  // We DELIBERATELY do not read unit_price, factor, discount, ledger, total.
+  var eqByGroup=useMemo(function(){
+    if(!eqItems||!eqGroups)return[];
+    var gMap={};(eqGroups||[]).forEach(function(g){gMap["/projectequipmentgroup/"+g.id]={name:g.name||g.displayname||"Equipo",items:[]}});
+    (eqItems||[]).forEach(function(it){
+      var gk=it.equipment_group;
+      if(!gMap[gk])gMap[gk]={name:"Otros",items:[]};
+      gMap[gk].items.push({name:it.name||it.displayname||"Item",qty:it.quantity||0});
+    });
+    return Object.values(gMap).filter(function(g){return g.items.length>0}).sort(function(a,b){return b.items.length-a.items.length});
+  },[eqItems,eqGroups]);
+
+  // SAFE CREW PROJECTION — name + folder badge + shift count only.
+  // We DELIBERATELY do not read costs, cost_rate, cost_actual, cost_planned, diff_cost.
+  var crewByMember=useMemo(function(){
+    if(!crewPlan)return[];
+    var mMap={};
+    (crewPlan||[]).forEach(function(cp){
+      var mk=cp.crewmember;
+      if(!mMap[mk])mMap[mk]={member:wMap?wMap[mk]:null,ref:mk,shifts:0};
+      mMap[mk].shifts++;
+    });
+    return Object.values(mMap).sort(function(a,b){return b.shifts-a.shifts});
+  },[crewPlan,wMap]);
+
+  if(!proj)return null;
+  var d=detail||proj;
+  // SAFE PROJECT FIELDS — top-line totals only.
+  // We DELIBERATELY do not show project_rental_price, project_crew_price,
+  // project_transport_price, project_other_price, project_insurance_price,
+  // project_sale_price, purchasecosts.
+  var total=d.project_total_price||0;
+  var invoiced=d.already_invoiced||0;
+  var pct=total>0?Math.round(invoiced/total*100):0;
+  var mgrName=d.account_manager&&wMap&&wMap[d.account_manager]?wMap[d.account_manager].displayname:null;
+  var status=projectStatus(d);
+
+  return <Modal open={true} onClose={onClose} title={d.displayname||d.name||"PROYECTO"} refCode={"PRJ-"+proj.id}>
+    {loading?<div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:3,color:"var(--mid)",textTransform:"uppercase",animation:"blink 1.5s infinite",padding:40,textAlign:"center"}}>CARGANDO DETALLE...</div>
+    :<div>
+      {/* HEADER */}
+      <div style={{marginBottom:28}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--accent)",textTransform:"uppercase"}}>// EVENTO</div>
+          <StatusPill status={status}/>
+        </div>
+        <DR label="Nombre" value={d.name||d.displayname||"\u2014"}/>
+        <DR label="Nº" value={String(d.number||d.id)}/>
+        {d.reference&&<DR label="Referencia" value={d.reference}/>}
+        <DR label="Inicio" value={fd(d.usageperiod_start)}/>
+        <DR label="Fin" value={fd(d.usageperiod_end)}/>
+        {d.location&&<DR label="Ubicación" value={d.location}/>}
+        {mgrName&&<DR label="Responsable Hypnos" value={mgrName}/>}
+      </div>
+
+      {/* TOP-LINE FINANCIALS — no breakdown */}
+      {total>0&&<div style={{marginBottom:28}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--accent)",textTransform:"uppercase",marginBottom:12}}>:: RESUMEN ECONÓMICO</div>
+        <DR label="Total Proyecto" value={eur(total)} accent/>
+        <DR label="Ya Facturado" value={eur(invoiced)} accent/>
+        <DR label="Pendiente de Facturar" value={eur(Math.max(0,total-invoiced))}/>
+        <div style={{marginTop:12}}>
+          <div style={{height:4,background:"var(--border)",position:"relative"}}><div style={{position:"absolute",top:0,left:0,height:"100%",width:pct+"%",background:"var(--accent)"}}/></div>
+          <div style={{fontFamily:"var(--mono)",fontSize:9,color:"var(--dim)",letterSpacing:1,marginTop:4}}>{pct}% FACTURADO</div>
+        </div>
+      </div>}
+
+      {/* EQUIPMENT — name + qty only, grouped */}
+      {eqByGroup.length>0&&<div style={{marginBottom:28}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--accent)",textTransform:"uppercase",marginBottom:12}}>{"\u25C6 EQUIPO ASIGNADO"}</div>
+        {eqByGroup.map(function(grp,gi){
+          return <div key={gi} style={{marginBottom:18}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
+              <span style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,letterSpacing:1,textTransform:"uppercase"}}>{grp.name}</span>
+              <span style={{fontFamily:"var(--mono)",fontSize:9,fontWeight:500,color:"var(--mid)",letterSpacing:1}}>{grp.items.length} items</span>
+            </div>
+            <div style={{maxHeight:200,overflowY:"auto"}}>
+              {grp.items.map(function(it,ii){
+                return <div key={ii} style={{display:"grid",gridTemplateColumns:"1fr 50px",padding:"5px 0",borderBottom:"1px solid rgba(204,204,204,0.3)"}}>
+                  <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--mid)",letterSpacing:.3}}>{it.name}</span>
+                  <span style={{fontFamily:"var(--mono)",fontSize:10,textAlign:"right",color:"var(--black)",fontWeight:500}}>{it.qty}x</span>
+                </div>;
+              })}
+            </div>
+          </div>;
+        })}
+      </div>}
+
+      {/* CREW — name + folder badge only */}
+      {crewByMember.length>0&&<div style={{marginBottom:28}}>
+        <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--accent)",textTransform:"uppercase",marginBottom:12}}>{"\u25CF PERSONAL ASIGNADO"}</div>
+        {crewByMember.map(function(cm,ci){
+          var name=cm.member?(cm.member.displayname||(cm.member.firstname+" "+cm.member.lastname)):"Crew #"+cm.ref.split("/").pop();
+          var folder=cm.member&&cm.member.folder;
+          var folderLabel=folder==="/folders/40"?"PLANTILLA":folder==="/folders/60"?"CREW":(folder==="/folders/43"||folder==="/folders/61")?"FREELANCE":"";
+          return <div key={ci} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
+            <div>
+              <div style={{fontFamily:"var(--mono)",fontSize:12,fontWeight:600,letterSpacing:1}}>{name}</div>
+              <div style={{display:"flex",gap:8,marginTop:4}}>
+                {folderLabel&&<span style={{fontFamily:"var(--mono)",fontSize:8,letterSpacing:2,padding:"2px 6px",border:"1px solid var(--border)",color:"var(--mid)",textTransform:"uppercase"}}>{folderLabel}</span>}
+              </div>
+            </div>
+            <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:1,color:"var(--dim)",textTransform:"uppercase"}}>{cm.shifts} {cm.shifts===1?"turno":"turnos"}</div>
+          </div>;
+        })}
+      </div>}
+
+      {eqByGroup.length===0&&crewByMember.length===0&&<div style={{padding:"20px 0",fontFamily:"var(--mono)",fontSize:10,color:"var(--dim)",letterSpacing:1,textAlign:"center",textTransform:"uppercase"}}>EVENTO EN PREPARACIÓN — PENDIENTE DE ASIGNAR EQUIPO Y PERSONAL</div>}
+    </div>}
+  </Modal>;
+}
+
+// ═══════ HELPERS ═══════
+function projectStatus(p){
+  var now=Date.now();
+  var s=p.usageperiod_start?new Date(p.usageperiod_start).getTime():null;
+  var e=p.usageperiod_end?new Date(p.usageperiod_end).getTime():null;
+  if(s&&e&&now>=s&&now<=e)return"Active";
+  if(s&&now<s)return"Upcoming";
+  if(e&&now>e)return"Past";
+  return"Past";
+}
+function isOverdue(inv){return!inv.is_paid&&inv.expiration&&new Date(inv.expiration).getTime()<Date.now()}
+
+// ═══════ PORTAL APP ═══════
+// ═══════ LOGIN ═══════
+function LoginScreen({onLogin}){
+  const[login,setLogin]=useState("");const[pass,setPass]=useState("");const[error,setError]=useState("");const[busy,setBusy]=useState(false);
+  const go=async function(e){
+    e.preventDefault();
+    if(busy)return;
+    setBusy(true);setError("");
+    var r=await auth.login(login,pass);
+    setBusy(false);
+    if(r.ok)onLogin(true);
+    else setError(r.error==="NETWORK_ERROR"?"ERROR DE CONEXIÓN":"ACCESO DENEGADO");
+  };
+  const iS={width:"100%",padding:"12px 14px",marginBottom:20,background:"var(--paper)",border:"1px solid var(--border)",color:"var(--black)",fontSize:13,fontFamily:"var(--mono)",letterSpacing:1};
+  const lS={fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,textTransform:"uppercase",color:"var(--mid)",display:"block",marginBottom:6};
+  return <div className="login-outer" style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--paper)",flexDirection:"column",gap:48,padding:"40px 20px"}}>
+    <div style={{textAlign:"center"}}>
+      <div style={{fontFamily:"var(--mono)",fontSize:11,letterSpacing:"0.45em",color:"var(--black)",fontWeight:500,textTransform:"uppercase",marginBottom:40}}>HYPNOS</div>
+      <Barcode count={20} height={24}/>
+    </div>
+    <div className="login-card" style={{width:400,padding:"48px 40px",border:"1px solid var(--border)",background:"#faf8f3"}}>
+      <Ref code="HYP-PORTAL-001"/>
+      <div style={{fontFamily:"var(--mono)",fontSize:16,fontWeight:700,letterSpacing:4,textTransform:"uppercase",color:"var(--black)",marginTop:8,marginBottom:32}}>PORTAL DEL CLIENTE</div>
+      <form onSubmit={go}>
+        <label style={lS}>IDENTIFICADOR</label>
+        <input type="text" value={login} onChange={function(e){setLogin(e.target.value);setError("")}} style={iS}/>
+        <label style={lS}>CLAVE</label>
+        <input type="password" value={pass} onChange={function(e){setPass(e.target.value);setError("")}} style={iS}/>
+        {error&&<div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:2,color:"var(--danger)",marginBottom:16}}>{error}</div>}
+        <Btn style={{width:"100%",padding:14,opacity:busy?0.5:1}}>{busy?"VERIFICANDO...":"ACCEDER"}</Btn>
+      </form>
+    </div>
+    <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--dim)",textTransform:"uppercase"}}>HYPNOS INDUSTRIES · VALENCIA</div>
+  </div>;
+}
+
+function Portal({onLogout}){
+  const[contacts,setContacts]=useState(null);
+  const[projects,setProjects]=useState(null);
+  const[invoices,setInvoices]=useState(null);
+  const[crew,setCrew]=useState(null);
+  const[loading,setLoading]=useState(true);
+  const[error,setError]=useState(null);
+  const[selected,setSelected]=useState(""); // contact ref e.g. "/contacts/3686"
+  const[selPrj,setSelPrj]=useState(null);
+
+  // Load global data once.
+  // PRODUCTION MODEL: replaced by a single bootstrap call to
+  // /webhook/hypnos-portal-auth that takes a venue secret and returns a
+  // contact-scoped token. After that, only that contact's projects and
+  // invoices are queryable through the proxy.
+  const loadAll=useCallback(async function(){
+    setLoading(true);setError(null);
+    try{
+      var ck=cache.get("bootstrap");
+      if(ck&&ck.data&&Date.now()-ck.ts<5*60*1000){
+        setContacts(ck.data.contacts);setProjects(ck.data.projects);setInvoices(ck.data.invoices);setCrew(ck.data.crew);
+        setLoading(false);return;
+      }
+      var res=await Promise.allSettled([
+        apiGetAll("rentman","/contacts?limit=300"),
+        apiGetAll("rentman","/projects?limit=300&sort=-id"),
+        apiGetAll("rentman","/invoices?limit=300&sort=-id"),
+        apiGet("rentman","/crew?limit=50")
+      ]);
+      var v=function(i){return res[i].status==="fulfilled"?res[i].value:null};
+      var c=v(0),p=v(1),inv=v(2),cr=v(3);
+      var cArr=c&&c.data||[];var pArr=p&&p.data||[];var iArr=inv&&inv.data||[];var crArr=cr&&cr.data||[];
+      cache.set("bootstrap",{contacts:cArr,projects:pArr,invoices:iArr,crew:crArr});
+      setContacts(cArr);setProjects(pArr);setInvoices(iArr);setCrew(crArr);
+    }catch(e){setError(e.message||"ERROR");}
+    setLoading(false);
+  },[]);
+
+  useEffect(function(){loadAll()},[loadAll]);
+
+  // Build crew map (id ref → crew member)
+  var wMap=useMemo(function(){
+    if(!crew)return{};
+    var m={};crew.forEach(function(cm){m["/crew/"+cm.id]=cm});return m;
+  },[crew]);
+
+  // Build the picker list: only contacts in folder Clientes (/folders/33)
+  // that have at least one project OR invoice.
+  // PRODUCTION MODEL: this list is replaced by a single contact derived
+  // from the venue token; the dropdown disappears entirely.
+  var pickerOptions=useMemo(function(){
+    if(!contacts||!projects||!invoices)return[];
+    var hasData={};
+    projects.forEach(function(p){if(p.customer)hasData[p.customer]=true});
+    invoices.forEach(function(i){if(i.customer)hasData[i.customer]=true});
+    return contacts
+      .filter(function(c){return c.folder==="/folders/33"})
+      .filter(function(c){return hasData["/contacts/"+c.id]})
+      .map(function(c){return{ref:"/contacts/"+c.id,name:c.name||c.displayname||("Contacto "+c.id)}})
+      .sort(function(a,b){return a.name.localeCompare(b.name)});
+  },[contacts,projects,invoices]);
+
+  // Filter projects and invoices to the selected client only.
+  var clientProjects=useMemo(function(){
+    if(!selected||!projects)return[];
+    return projects.filter(function(p){return p.customer===selected})
+      .sort(function(a,b){return new Date(b.usageperiod_start||0)-new Date(a.usageperiod_start||0)});
+  },[selected,projects]);
+
+  var clientInvoices=useMemo(function(){
+    if(!selected||!invoices)return[];
+    return invoices.filter(function(i){return i.customer===selected})
+      .sort(function(a,b){return new Date(b.date||0)-new Date(a.date||0)});
+  },[selected,invoices]);
+
+  var clientName=useMemo(function(){
+    if(!selected)return null;
+    var opt=pickerOptions.find(function(o){return o.ref===selected});
+    return opt?opt.name:null;
+  },[selected,pickerOptions]);
+
+  // Top-line summary (top-line totals only — no breakdown).
+  var summary=useMemo(function(){
+    if(!selected)return null;
+    var tInvoiced=clientInvoices.reduce(function(a,i){return a+(i.price_invat||0)},0);
+    var tPaid=clientInvoices.filter(function(i){return i.is_paid}).reduce(function(a,i){return a+(i.price_invat||0)},0);
+    var tPending=clientInvoices.reduce(function(a,i){return a+(i.outstanding_balance||0)},0);
+    var upcoming=clientProjects.filter(function(p){return projectStatus(p)==="Upcoming"||projectStatus(p)==="Active"}).length;
+    return{tInvoiced:tInvoiced,tPaid:tPaid,tPending:tPending,upcoming:upcoming,total:clientProjects.length};
+  },[selected,clientInvoices,clientProjects]);
+
+  return <div style={{minHeight:"100vh",background:"var(--paper)"}}>
+    <PrjModal proj={selPrj} wMap={wMap} onClose={function(){setSelPrj(null)}}/>
+
+    {/* HEADER */}
+    <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 40px",height:56,borderBottom:"1px solid var(--border)",position:"sticky",top:0,zIndex:100,background:"var(--paper)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:24}}>
+        <span style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:500,letterSpacing:"0.45em",textTransform:"uppercase"}}>HYPNOS</span>
+        <span className="hdr-divider" style={{color:"var(--border)"}}>|</span>
+        <span className="hdr-sub" style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:600,letterSpacing:3,textTransform:"uppercase",color:"var(--mid)"}}>PORTAL DEL CLIENTE</span>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <span style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--dim)",textTransform:"uppercase"}}>VALENCIA</span>
+        <Btn onClick={function(){window.location.href="mailto:"+CONTACT_EMAIL+"?subject=Consulta%20portal%20cliente"}}>CONTACTAR</Btn>
+        <Btn onClick={onLogout}>SALIR</Btn>
+      </div>
+    </header>
+
+    <main className="main" style={{padding:40,maxWidth:1100,margin:"0 auto"}}>
+      {loading&&<div style={{padding:80,textAlign:"center",fontFamily:"var(--mono)",fontSize:10,letterSpacing:3,color:"var(--mid)",textTransform:"uppercase",animation:"blink 1.5s infinite"}}>CARGANDO PORTAL...</div>}
+      {error&&<div style={{padding:40,textAlign:"center",fontFamily:"var(--mono)",fontSize:10,letterSpacing:2,color:"var(--danger)",textTransform:"uppercase"}}>{"ERROR: "+error}</div>}
+
+      {!loading&&!error&&<div style={{animation:"fadeUp 0.6s ease"}}>
+
+        {/* GATE: PoC dropdown.
+            PRODUCTION MODEL: this entire block is replaced by a single
+            client-name banner derived from the venue token. */}
+        <div style={{marginBottom:48}}>
+          <Ref code="GATE-PoC"/>
+          <h2 style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:400,letterSpacing:4,textTransform:"uppercase",color:"var(--mid)",marginTop:4,marginBottom:24}}>SELECCIÓN DE CLIENTE</h2>
+          <div className="gate-row" style={{display:"flex",alignItems:"center",justifyContent:"space-between",border:"1px solid var(--border)",padding:"20px 24px",background:"#faf8f3"}}>
+            <div>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--mid)",textTransform:"uppercase",marginBottom:6}}>// PoC: en producción cada cliente accede mediante un enlace privado</div>
+              <div style={{fontFamily:"var(--sans)",fontSize:13,color:"#444",maxWidth:540}}>Selecciona un cliente para ver sus eventos, equipo asignado y facturación.</div>
+            </div>
+            <select value={selected} onChange={function(e){setSelected(e.target.value)}}
+              style={{fontFamily:"var(--mono)",fontSize:11,padding:"10px 14px",border:"1px solid var(--black)",background:"var(--paper)",letterSpacing:1,minWidth:260,cursor:"pointer"}}>
+              <option value="">— ELIGE UN CLIENTE —</option>
+              {pickerOptions.map(function(o){return <option key={o.ref} value={o.ref}>{o.name}</option>})}
+            </select>
+          </div>
+          {pickerOptions.length===0&&<div style={{marginTop:12,fontFamily:"var(--mono)",fontSize:9,letterSpacing:1,color:"var(--dim)"}}>(Sin clientes con datos)</div>}
+        </div>
+
+        {!selected&&<div style={{padding:"60px 20px",textAlign:"center",border:"1px dashed var(--border)"}}>
+          <Barcode count={20} height={20}/>
+          <div style={{fontFamily:"var(--mono)",fontSize:10,letterSpacing:3,color:"var(--mid)",textTransform:"uppercase",marginTop:20}}>SIN CLIENTE SELECCIONADO</div>
+          <div style={{fontFamily:"var(--sans)",fontSize:13,color:"var(--dim)",marginTop:8}}>Elige un cliente arriba para cargar su información.</div>
+        </div>}
+
+        {selected&&<div>
+          {/* CLIENT BANNER */}
+          <div style={{marginBottom:32,paddingBottom:24,borderBottom:"1px solid var(--border)"}}>
+            <Ref code={"CLIENT-"+selected.split("/").pop()}/>
+            <div style={{fontFamily:"var(--mono)",fontSize:22,fontWeight:700,letterSpacing:2,textTransform:"uppercase",marginTop:8}}>{clientName}</div>
+            <div style={{fontFamily:"var(--sans)",fontSize:13,color:"var(--mid)",marginTop:6}}>Resumen de actividad con Hypnos Industries.</div>
+          </div>
+
+          {/* SUMMARY METRICS */}
+          {summary&&<div style={{marginBottom:48}}>
+            <Ref code="SEC-001"/>
+            <h2 style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:400,letterSpacing:4,textTransform:"uppercase",color:"var(--mid)",marginTop:4,marginBottom:24}}>RESUMEN</h2>
+            <div className="mrow" style={{display:"flex",border:"1px solid var(--border)",flexWrap:"wrap"}}>
+              <MetricCell label="Eventos" value={String(summary.total)} sub={summary.upcoming+" ACTIVOS / PRÓX."}/>
+              <MetricCell label="Facturado" value={eur(summary.tInvoiced)} sub={clientInvoices.length+" FACTURAS"}/>
+              <MetricCell label="Pagado" value={eur(summary.tPaid)} sub={clientInvoices.filter(function(i){return i.is_paid}).length+" PAGADAS"}/>
+              <MetricCell label="Pendiente" value={eur(summary.tPending)} sub="POR COBRAR" highlight/>
+            </div>
+          </div>}
+
+          {/* EVENTS / PROJECTS TABLE */}
+          <div style={{marginBottom:48}}>
+            <Ref code="SEC-002"/>
+            <h2 style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:400,letterSpacing:4,textTransform:"uppercase",color:"var(--mid)",marginTop:4,marginBottom:24}}>EVENTOS</h2>
+            {clientProjects.length===0?<div style={{padding:"40px 20px",border:"1px solid var(--border)",fontFamily:"var(--mono)",fontSize:10,letterSpacing:2,color:"var(--dim)",textAlign:"center",textTransform:"uppercase"}}>SIN EVENTOS REGISTRADOS</div>
+            :<div style={{border:"1px solid var(--border)"}} className="scroll-x">
+              <div style={{minWidth:680}}>
+                <div style={{display:"grid",gridTemplateColumns:"110px 1fr 1fr 110px 60px",padding:"12px 16px",borderBottom:"1px solid var(--border)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--mid)",textTransform:"uppercase",background:"#faf8f3"}}>
+                  <div>FECHA</div><div>EVENTO</div><div>UBICACIÓN</div><div>ESTADO</div><div style={{textAlign:"right"}}>{"\u2192"}</div>
+                </div>
+                {clientProjects.map(function(p){
+                  return <div key={p.id} className="clickrow" onClick={function(){setSelPrj(p)}}
+                    style={{display:"grid",gridTemplateColumns:"110px 1fr 1fr 110px 60px",padding:"14px 16px",borderBottom:"1px solid var(--border)",alignItems:"center"}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--black)"}}>{fdShort(p.usageperiod_start)}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:600,color:"var(--black)",letterSpacing:.5}}>{p.displayname||p.name||("Proyecto "+p.id)}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--mid)"}}>{p.location||"\u2014"}</div>
+                    <div><StatusPill status={projectStatus(p)}/></div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:14,color:"var(--dim)",textAlign:"right"}}>{"\u203A"}</div>
+                  </div>;
+                })}
+              </div>
+            </div>}
+          </div>
+
+          {/* INVOICES TABLE */}
+          <div style={{marginBottom:48}}>
+            <Ref code="SEC-003"/>
+            <h2 style={{fontFamily:"var(--mono)",fontSize:10,fontWeight:400,letterSpacing:4,textTransform:"uppercase",color:"var(--mid)",marginTop:4,marginBottom:24}}>FACTURAS</h2>
+            {clientInvoices.length===0?<div style={{padding:"40px 20px",border:"1px solid var(--border)",fontFamily:"var(--mono)",fontSize:10,letterSpacing:2,color:"var(--dim)",textAlign:"center",textTransform:"uppercase"}}>SIN FACTURAS REGISTRADAS</div>
+            :<div style={{border:"1px solid var(--border)"}} className="scroll-x">
+              <div style={{minWidth:720}}>
+                <div style={{display:"grid",gridTemplateColumns:"100px 110px 1fr 110px 110px",padding:"12px 16px",borderBottom:"1px solid var(--border)",fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--mid)",textTransform:"uppercase",background:"#faf8f3"}}>
+                  <div>NÚMERO</div><div>FECHA</div><div>ARCHIVO</div><div style={{textAlign:"right"}}>TOTAL</div><div style={{textAlign:"right"}}>ESTADO</div>
+                </div>
+                {clientInvoices.map(function(i){
+                  var od=isOverdue(i);
+                  return <div key={i.id}
+                    style={{display:"grid",gridTemplateColumns:"100px 110px 1fr 110px 110px",padding:"14px 16px",borderBottom:"1px solid var(--border)",alignItems:"center"}}>
+                    <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:600,letterSpacing:.5}}>{i.number||("#"+i.id)}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--mid)"}}>{fdShort(i.date)}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{i.filename||i.subject||"\u2014"}</div>
+                    <div style={{fontFamily:"var(--mono)",fontSize:11,fontWeight:600,textAlign:"right"}}>{eur(i.price_invat)}</div>
+                    <div style={{textAlign:"right"}}><PayPill paid={i.is_paid} overdue={od}/></div>
+                  </div>;
+                })}
+              </div>
+            </div>}
+          </div>
+
+          {/* CONTACT CTA */}
+          <div style={{marginBottom:48,padding:"32px 28px",border:"1px solid var(--border)",background:"#faf8f3",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:20}}>
+            <div>
+              <div style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--mid)",textTransform:"uppercase",marginBottom:6}}>// SOPORTE</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:14,fontWeight:600,letterSpacing:1,textTransform:"uppercase"}}>¿DUDAS SOBRE TU CUENTA?</div>
+              <div style={{fontFamily:"var(--sans)",fontSize:13,color:"var(--mid)",marginTop:6}}>Escríbenos directamente y te respondemos en horario comercial.</div>
+            </div>
+            <Btn onClick={function(){window.location.href="mailto:"+CONTACT_EMAIL+"?subject=Consulta%20%E2%80%94%20"+encodeURIComponent(clientName||"")}} style={{padding:"12px 22px",fontSize:10}}>CONTACTAR</Btn>
+          </div>
+        </div>}
+      </div>}
+    </main>
+
+    <footer className="footer" style={{padding:40,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <span style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--dim)",textTransform:"uppercase"}}>HYPNOS INDUSTRIES · VALENCIA</span>
+      <Barcode count={14} height={10}/>
+      <span style={{fontFamily:"var(--mono)",fontSize:9,letterSpacing:2,color:"var(--dim)",textTransform:"uppercase"}}>PORTAL DEL CLIENTE</span>
+    </footer>
+  </div>;
+}
+
+// ═══════ APP ═══════
+function App(){
+  const[authed,setAuthed]=useState(function(){return!!auth.token()});
+  useEffect(function(){
+    var h=function(){setAuthed(false)};
+    window.addEventListener("hypnos-portal-auth-required",h);
+    return function(){window.removeEventListener("hypnos-portal-auth-required",h)};
+  },[]);
+  if(!authed)return <LoginScreen onLogin={setAuthed}/>;
+  return <Portal onLogout={function(){auth.logout();setAuthed(false)}}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
